@@ -4,6 +4,7 @@ extends Node
 signal player_died
 signal round_changed(round_number: int)
 signal round_status_changed(round_number: int, enemies_remaining: int, between_round: bool, seconds_left: float)
+signal hit_confirmed
 signal game_restarted
 
 var current_round: int = 0
@@ -26,6 +27,9 @@ func notify_player_died() -> void:
 		return
 	is_game_over = true
 	player_died.emit()
+
+func notify_hit_confirmed() -> void:
+	hit_confirmed.emit()
 
 func set_round(n: int) -> void:
 	current_round = n

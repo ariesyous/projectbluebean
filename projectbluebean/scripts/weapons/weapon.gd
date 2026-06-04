@@ -6,6 +6,7 @@ class_name Weapon
 @export var data: WeaponData
 
 signal ammo_changed(in_mag: int, reserve: int)
+signal reload_changed(is_reloading: bool)
 
 var _in_mag: int = 0
 var _reserve: int = 0
@@ -30,6 +31,9 @@ func is_automatic() -> bool:
 
 func get_ammo() -> Vector2i:
 	return Vector2i(_in_mag, _reserve)
+
+func is_reloading() -> bool:
+	return _reloading
 
 func try_fire() -> void:
 	if data == null or _reloading or not _can_fire:
@@ -80,6 +84,7 @@ func _do_hitscan() -> Vector3:
 	var collider = hit.get("collider")
 	if collider != null and collider.has_method("take_damage"):
 		collider.take_damage(data.damage)
+		GameState.notify_hit_confirmed()
 	var point: Vector3 = hit.get("position", to)
 	_spawn_impact(point)
 	return point
@@ -90,12 +95,14 @@ func reload() -> void:
 	if _in_mag >= data.mag_size or _reserve <= 0:
 		return
 	_reloading = true
+	reload_changed.emit(true)
 	await get_tree().create_timer(data.reload_time).timeout
 	var needed: int = data.mag_size - _in_mag
 	var take: int = mini(needed, _reserve)
 	_in_mag += take
 	_reserve -= take
 	_reloading = false
+	reload_changed.emit(false)
 	ammo_changed.emit(_in_mag, _reserve)
 
 # --- Fire feedback ---------------------------------------------------------

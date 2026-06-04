@@ -7,20 +7,28 @@ extends CanvasLayer
 @onready var round_label: Label = $Root/RoundLabel
 @onready var enemies_label: Label = $Root/EnemiesLabel
 @onready var ammo_label: Label = $Root/AmmoLabel
+@onready var hit_marker: Label = $Root/HitMarker
 @onready var prompt_label: Label = $Root/PromptLabel
 @onready var game_over: Control = $Root/GameOver
 @onready var restart_button: Button = $Root/GameOver/RestartButton
 
+const HIT_MARKER_DURATION := 0.14
+
 var _player: Node = null
 var _target = null
+var _tracked_weapon: Node = null
+var _last_ammo := Vector2i.ZERO
+var _hit_marker_time: float = 0.0
 
 func _ready() -> void:
 	game_over.visible = false
 	prompt_label.visible = false
+	hit_marker.visible = false
 	Economy.points_changed.connect(_on_points_changed)
 	GameState.player_died.connect(_on_player_died)
 	GameState.round_changed.connect(_on_round_changed)
 	GameState.round_status_changed.connect(_on_round_status_changed)
+	GameState.hit_confirmed.connect(_on_hit_confirmed)
 	restart_button.pressed.connect(_on_restart)
 	await get_tree().process_frame
 	_player = get_tree().get_first_node_in_group("player")
@@ -37,7 +45,11 @@ func _ready() -> void:
 		GameState.is_between_round,
 		GameState.round_countdown)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _hit_marker_time > 0.0:
+		_hit_marker_time = maxf(_hit_marker_time - delta, 0.0)
+		if _hit_marker_time <= 0.0:
+			hit_marker.visible = false
 	if _target != null and is_instance_valid(_target) and _target.has_method("get_prompt"):
 		var text: String = _target.get_prompt()
 		prompt_label.text = text
@@ -67,15 +79,38 @@ func _on_round_status_changed(_round_number: int, remaining: int, between_round:
 		enemies_label.text = "Wave clear"
 
 func _on_weapon_changed(weapon) -> void:
+	if _tracked_weapon != null and is_instance_valid(_tracked_weapon):
+		if _tracked_weapon.has_signal("ammo_changed") and _tracked_weapon.ammo_changed.is_connected(_on_ammo_changed):
+			_tracked_weapon.ammo_changed.disconnect(_on_ammo_changed)
+		if _tracked_weapon.has_signal("reload_changed") and _tracked_weapon.reload_changed.is_connected(_on_reload_changed):
+			_tracked_weapon.reload_changed.disconnect(_on_reload_changed)
+	_tracked_weapon = weapon
 	if weapon != null and weapon.has_signal("ammo_changed"):
-		if not weapon.ammo_changed.is_connected(_on_ammo_changed):
-			weapon.ammo_changed.connect(_on_ammo_changed)
+		weapon.ammo_changed.connect(_on_ammo_changed)
+	if weapon != null and weapon.has_signal("reload_changed"):
+		weapon.reload_changed.connect(_on_reload_changed)
+	if weapon != null:
 		if weapon.has_method("get_ammo"):
 			var a: Vector2i = weapon.get_ammo()
 			_on_ammo_changed(a.x, a.y)
+		if weapon.has_method("is_reloading"):
+			_on_reload_changed(weapon.is_reloading())
+	else:
+		ammo_label.text = "-- / --"
 
 func _on_ammo_changed(in_mag: int, reserve: int) -> void:
+	_last_ammo = Vector2i(in_mag, reserve)
 	ammo_label.text = "%d / %d" % [in_mag, reserve]
+
+func _on_reload_changed(is_reloading: bool) -> void:
+	if is_reloading:
+		ammo_label.text = "Reloading"
+	else:
+		ammo_label.text = "%d / %d" % [_last_ammo.x, _last_ammo.y]
+
+func _on_hit_confirmed() -> void:
+	_hit_marker_time = HIT_MARKER_DURATION
+	hit_marker.visible = true
 
 func _on_interact_target_changed(target) -> void:
 	_target = target

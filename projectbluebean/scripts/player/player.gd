@@ -137,6 +137,7 @@ func _try_melee() -> void:
 	var collider = hit.get("collider")
 	if collider != null and collider.has_method("take_damage"):
 		collider.take_damage(melee_damage)
+		GameState.notify_hit_confirmed()
 		_spawn_melee_feedback(point, true)
 	else:
 		_spawn_melee_feedback(point, false)
