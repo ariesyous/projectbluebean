@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cynfaeapnlwvs"]
 
-[ext_resource type="Script" path="res://scripts/player/player.gd" id="1_wr5hl"]
+[ext_resource type="Script" uid="uid://bwm7srh3sjw86" path="res://scripts/player/player.gd" id="1_wr5hl"]
 [ext_resource type="PackedScene" uid="uid://5ebxfq20jf21" path="res://scenes/weapons/Crossbow.tscn" id="2_gfjak"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/Axe.tscn" id="3_axe"]
 
@@ -22,11 +22,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 [node name="Camera3D" type="Camera3D" parent="Head" unique_id=2136633475]
 
 [node name="WeaponHolder" type="Node3D" parent="Head/Camera3D" unique_id=958073106]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.3, -0.6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, -0.35, -0.5)
 
 [node name="Crossbow" parent="Head/Camera3D/WeaponHolder" unique_id=2117233098 instance=ExtResource("2_gfjak")]
 
-[node name="Axe" parent="Head/Camera3D/WeaponHolder" instance=ExtResource("3_axe")]
+[node name="Axe" parent="Head/Camera3D/WeaponHolder" unique_id=995260413 instance=ExtResource("3_axe")]
 visible = false
 
 [node name="InteractRay" type="RayCast3D" parent="Head/Camera3D" unique_id=663581385]

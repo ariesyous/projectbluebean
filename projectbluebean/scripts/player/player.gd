@@ -12,6 +12,12 @@ extends CharacterBody3D
 @export var melee_range: float = 2.2
 @export var melee_cooldown: float = 0.65
 
+## Weapon feel polish
+@export var sway_amount: float = 2.5
+@export var sway_lerp: float = 5.0
+@export var bob_frequency: float = 2.4
+@export var bob_amplitude: float = 0.06
+
 signal health_changed(current: float, maximum: float)
 signal weapon_changed(weapon: Node)
 signal interact_target_changed(target)  ## the interactable Node, or null
@@ -24,11 +30,14 @@ var _weapon_slots: Array[Node3D] = []
 var _weapon_scene_paths: Array[String] = []
 var _current_interactable = null
 var _melee_timer: float = 0.0
+var _mouse_input: Vector2 = Vector2.ZERO
+var _bob_time: float = 0.0
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
 @onready var weapon_holder: Node3D = $Head/Camera3D/WeaponHolder
 @onready var interact_ray: RayCast3D = $Head/Camera3D/InteractRay
+@onready var _initial_weapon_holder_pos: Vector3 = weapon_holder.position
 
 func _ready() -> void:
 	add_to_group("player")
@@ -40,6 +49,7 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		_mouse_input = event.relative
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(-89.0), deg_to_rad(89.0))
@@ -181,6 +191,37 @@ func _physics_process(delta: float) -> void:
 	_handle_weapon_input()
 	_update_interaction()
 	_update_health_regen(delta)
+	_update_weapon_visuals(delta)
+
+func _update_weapon_visuals(delta: float) -> void:
+	if weapon_holder == null:
+		return
+	
+	# 1. Weapon Sway (Mouse)
+	var sway_target_rotation := Vector3(
+		_mouse_input.y * sway_amount * 0.001,
+		_mouse_input.x * sway_amount * 0.001,
+		0.0
+	)
+	weapon_holder.rotation.x = lerp_angle(weapon_holder.rotation.x, sway_target_rotation.x, delta * sway_lerp)
+	weapon_holder.rotation.y = lerp_angle(weapon_holder.rotation.y, sway_target_rotation.y, delta * sway_lerp)
+	_mouse_input = Vector2.ZERO # Reset for next frame
+	
+	# 2. Weapon Bob (Movement)
+	var speed := velocity.length()
+	if is_on_floor() and speed > 0.1:
+		_bob_time += delta * speed * bob_frequency
+	else:
+		_bob_time = lerp(_bob_time, 0.0, delta * 10.0)
+	
+	var bob_offset := Vector3(
+		cos(_bob_time * 0.5) * bob_amplitude * 0.5,
+		abs(sin(_bob_time)) * -bob_amplitude,
+		0.0
+	)
+	
+	var target_pos := _initial_weapon_holder_pos + bob_offset
+	weapon_holder.position = weapon_holder.position.lerp(target_pos, delta * 10.0)
 
 func _handle_weapon_input() -> void:
 	if _current_weapon == null:
