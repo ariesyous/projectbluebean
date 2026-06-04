@@ -53,4 +53,4 @@ A first-person, round-based survival shooter built in Godot 4.6. Inspired by Cal
 
 ## License
 
-This project is private. See `godot-ai-LICENSE.txt` for details on the Godot AI integration.
+This project is open source and available under the [MIT License](LICENSE). See `godot-ai-LICENSE.txt` for details on the Godot AI integration.
