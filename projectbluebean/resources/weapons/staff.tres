@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/FireBolt.tscn" id="2_fqp6i"]
 
 [resource]
 script = ExtResource("1")
@@ -12,5 +13,7 @@ reserve_ammo = 120
 reload_time = 2.0
 max_range = 100.0
 automatic = true
-projectile = false
+projectile = true
+projectile_scene = ExtResource("2_fqp6i")
+projectile_speed = 28.0
 muzzle_color = Color(1, 0.45, 0.1, 1)

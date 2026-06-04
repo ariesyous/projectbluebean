@@ -1,7 +1,7 @@
 extends Node3D
 class_name Weapon
-## Generic weapon driven by a WeaponData resource. Hitscan for M1 with muzzle
-## flash + tracer + impact feedback; projectile support arrives in M3.
+## Generic weapon driven by a WeaponData resource. Supports hitscan and
+## projectile firing, with muzzle/impact feedback.
 
 @export var data: WeaponData
 
@@ -40,11 +40,28 @@ func try_fire() -> void:
 	_can_fire = false
 	_in_mag -= 1
 	ammo_changed.emit(_in_mag, _reserve)
-	var hit_point := _do_hitscan()
 	_spawn_muzzle_flash()
-	_spawn_tracer(global_position, hit_point)
+	if data.projectile and data.projectile_scene != null:
+		_spawn_projectile()
+	else:
+		var hit_point := _do_hitscan()
+		_spawn_tracer(global_position, hit_point)
 	get_tree().create_timer(1.0 / maxf(data.fire_rate, 0.01)).timeout.connect(
 		func() -> void: _can_fire = true)
+
+func _spawn_projectile() -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var direction := (-cam.global_transform.basis.z).normalized()
+	var projectile := data.projectile_scene.instantiate() as Node3D
+	if projectile == null:
+		return
+	if projectile.has_method("setup"):
+		projectile.setup(direction, data.damage, data.max_range, data.projectile_speed, data.muzzle_color)
+	get_tree().current_scene.add_child(projectile)
+	projectile.global_position = global_position + direction * 0.35
+	projectile.look_at(projectile.global_position + direction, Vector3.UP)
 
 ## Raycasts from the camera; damages a hit orc and returns the impact point
 ## (or the far end of the ray on a miss) for the tracer.
