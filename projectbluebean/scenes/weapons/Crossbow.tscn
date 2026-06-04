@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://5ebxfq20jf21"]
+
+[ext_resource type="Script" path="res://scripts/weapons/crossbow.gd" id="1_1dkdo"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_hx8ts"]
+size = Vector3(0.08, 0.08, 0.5)
+
+[node name="Crossbow" type="Node3D" unique_id=2117233098]
+script = ExtResource("1_1dkdo")
+
+[node name="Mesh" type="MeshInstance3D" parent="." unique_id=1311074619]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.1)
+mesh = SubResource("BoxMesh_hx8ts")

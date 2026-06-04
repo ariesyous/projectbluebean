@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Crossbow"
+damage = 45.0
+fire_rate = 2.5
+mag_size = 6
+reserve_ammo = 60
+reload_time = 1.5
+max_range = 120.0
+automatic = false
+projectile = false
+muzzle_color = Color(1, 0.85, 0.4, 1)

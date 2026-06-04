@@ -1,0 +1,106 @@
+[gd_scene format=3 uid="uid://d3r02hvd55oxj"]
+
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_kw0id"]
+
+[node name="HUD" type="CanvasLayer" unique_id=746987780]
+script = ExtResource("1_kw0id")
+
+[node name="Root" type="Control" parent="." unique_id=1682938350]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="PointsLabel" type="Label" parent="Root" unique_id=2022573041]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 300.0
+offset_bottom = 60.0
+text = "500 pts"
+
+[node name="AmmoLabel" type="Label" parent="Root" unique_id=267135240]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -56.0
+offset_right = -24.0
+offset_bottom = -20.0
+text = "6 / 60"
+horizontal_alignment = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Root" unique_id=579016629]
+layout_mode = 0
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -44.0
+offset_right = 264.0
+offset_bottom = -20.0
+value = 100.0
+
+[node name="Crosshair" type="Label" parent="Root" unique_id=1103051375]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -8.0
+offset_top = -14.0
+offset_right = 8.0
+offset_bottom = 14.0
+text = "+"
+horizontal_alignment = 1
+
+[node name="PromptLabel" type="Label" parent="Root" unique_id=1742162561]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = 70.0
+offset_right = 260.0
+offset_bottom = 100.0
+horizontal_alignment = 1
+
+[node name="GameOver" type="Control" parent="Root" unique_id=315065091]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="Root/GameOver" unique_id=1817688895]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="Title" type="Label" parent="Root/GameOver" unique_id=1905090621]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -80.0
+offset_right = 300.0
+offset_bottom = -30.0
+text = "YOU WERE OVERRUN"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="Root/GameOver" unique_id=581405918]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = 20.0
+offset_right = 80.0
+offset_bottom = 60.0
+text = "Restart"
