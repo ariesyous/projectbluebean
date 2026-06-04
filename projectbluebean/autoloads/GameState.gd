@@ -3,14 +3,22 @@ extends Node
 
 signal player_died
 signal round_changed(round_number: int)
+signal round_status_changed(round_number: int, enemies_remaining: int, between_round: bool, seconds_left: float)
 signal game_restarted
 
 var current_round: int = 0
+var enemies_remaining: int = 0
+var is_between_round: bool = false
+var round_countdown: float = 0.0
 var is_game_over: bool = false
 
 func reset() -> void:
 	current_round = 0
+	enemies_remaining = 0
+	is_between_round = false
+	round_countdown = 0.0
 	is_game_over = false
+	round_status_changed.emit(current_round, enemies_remaining, is_between_round, round_countdown)
 	game_restarted.emit()
 
 func notify_player_died() -> void:
@@ -22,3 +30,9 @@ func notify_player_died() -> void:
 func set_round(n: int) -> void:
 	current_round = n
 	round_changed.emit(n)
+
+func set_round_status(remaining: int, between_round: bool, seconds_left: float = 0.0) -> void:
+	enemies_remaining = max(remaining, 0)
+	is_between_round = between_round
+	round_countdown = max(seconds_left, 0.0)
+	round_status_changed.emit(current_round, enemies_remaining, is_between_round, round_countdown)

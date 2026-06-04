@@ -4,6 +4,8 @@ extends CanvasLayer
 
 @onready var health_bar: ProgressBar = $Root/HealthBar
 @onready var points_label: Label = $Root/PointsLabel
+@onready var round_label: Label = $Root/RoundLabel
+@onready var enemies_label: Label = $Root/EnemiesLabel
 @onready var ammo_label: Label = $Root/AmmoLabel
 @onready var prompt_label: Label = $Root/PromptLabel
 @onready var game_over: Control = $Root/GameOver
@@ -17,6 +19,8 @@ func _ready() -> void:
 	prompt_label.visible = false
 	Economy.points_changed.connect(_on_points_changed)
 	GameState.player_died.connect(_on_player_died)
+	GameState.round_changed.connect(_on_round_changed)
+	GameState.round_status_changed.connect(_on_round_status_changed)
 	restart_button.pressed.connect(_on_restart)
 	await get_tree().process_frame
 	_player = get_tree().get_first_node_in_group("player")
@@ -26,6 +30,12 @@ func _ready() -> void:
 		_player.interact_target_changed.connect(_on_interact_target_changed)
 		_on_weapon_changed(_player.get("_current_weapon"))
 	_on_points_changed(Economy.points)
+	_on_round_changed(GameState.current_round)
+	_on_round_status_changed(
+		GameState.current_round,
+		GameState.enemies_remaining,
+		GameState.is_between_round,
+		GameState.round_countdown)
 
 func _process(_delta: float) -> void:
 	if _target != null and is_instance_valid(_target) and _target.has_method("get_prompt"):
@@ -41,6 +51,20 @@ func _on_health_changed(current: float, maximum: float) -> void:
 
 func _on_points_changed(total: int) -> void:
 	points_label.text = "%d pts" % total
+
+func _on_round_changed(round_number: int) -> void:
+	if round_number <= 0:
+		round_label.text = "Round --"
+	else:
+		round_label.text = "Round %d" % round_number
+
+func _on_round_status_changed(_round_number: int, remaining: int, between_round: bool, seconds_left: float) -> void:
+	if between_round:
+		enemies_label.text = "Next wave: %ds" % ceili(seconds_left)
+	elif remaining > 0:
+		enemies_label.text = "%d enemies" % remaining
+	else:
+		enemies_label.text = "Wave clear"
 
 func _on_weapon_changed(weapon) -> void:
 	if weapon != null and weapon.has_signal("ammo_changed"):
