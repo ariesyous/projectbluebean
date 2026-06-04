@@ -2,6 +2,39 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Current handoff update
+
+The newest concise handoff is in `AGENTS.md`. Read that first in a new thread.
+
+Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
+
+- M1 core loop/economy is playable.
+- Goblin/orc hit detection is fixed.
+- KayKit Crossbow and Staff view models are wired.
+- M2 round/wave system is implemented.
+- M3 foundation is implemented: weapon slots, Staff purchase/refill, quick melee fallback, Fire
+  Staff projectile bolts, HUD hit marker, and reload HUD feedback.
+
+Most recently verified through Godot MCP:
+
+- Crossbow hit reduces enemy health `100 -> 55`, decrements ammo, and flashes the hit marker.
+- Hit marker clears after its short flash.
+- Reload HUD shows `Reloading`, then returns to ammo text.
+- Fire Staff projectile damage, melee damage, weapon switching, Staff refill, and Round 2
+  scheduling were verified in earlier checkpoints.
+
+Known current issues / polish:
+
+- There is no reload animation yet.
+- The Crossbow view model still floats somewhat in the middle of the air, but it does not block aim.
+- Existing navmesh warning persists: `Property agent_height is ceiled to cell_height voxel units
+  and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
+- No firing/reload SFX yet.
+
+Recommended next step: continue M3 weapon feel polish with a simple reload animation /
+procedural weapon motion, then add weapon SFX. The user specifically noticed the missing reload
+animation.
+
 ## What this is
 
 A first-person, round-based survival shooter — Call-of-Duty-Zombies-style but reskinned to a
