@@ -1,21 +1,10 @@
 [gd_scene format=3 uid="uid://ev5dt6xwfnnx"]
 
 [ext_resource type="Script" uid="uid://baw2j2ys4v4ia" path="res://scripts/weapons/staff.gd" id="1_1b42q"]
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_em2qe"]
-albedo_color = Color(0.4, 0.2, 0.1, 1)
-emission_enabled = true
-emission = Color(1, 0.45, 0.1, 1)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_hmywe"]
-top_radius = 0.04
-bottom_radius = 0.05
-height = 0.7
+[ext_resource type="PackedScene" uid="uid://f2a36ncgwyvq" path="res://assets/weapons/kaykit/staff.gltf" id="2_7mfsb"]
 
 [node name="Staff" type="Node3D" unique_id=45464361]
 script = ExtResource("1_1b42q")
 
-[node name="Mesh" type="MeshInstance3D" parent="." unique_id=870764234]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, -0.2)
-material_override = SubResource("StandardMaterial3D_em2qe")
-mesh = SubResource("CylinderMesh_hmywe")
+[node name="Model" parent="." instance=ExtResource("2_7mfsb")]
+transform = Transform3D(0.4, 0, 0, 0, 0, -0.4, 0, 0.4, 0, 0, -0.02, -0.2)
