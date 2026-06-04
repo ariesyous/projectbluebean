@@ -1,10 +1,14 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_wdata"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/AxeProjectile.tscn" id="2_axeproj"]
+[ext_resource type="AudioStream" path="res://assets/sounds/axe_throw.wav" id="3_athrow"]
+[ext_resource type="AudioStream" path="res://assets/sounds/reload.wav" id="4_rld"]
 
 [resource]
 script = ExtResource("1_wdata")
+fire_sound = ExtResource("3_athrow")
+reload_sound = ExtResource("4_rld")
 display_name = "Throwing Axe"
 damage = 65.0
 fire_rate = 1.5

@@ -15,6 +15,7 @@ var _reloading: bool = false
 var _view_model: Node3D = null
 var _base_transform: Transform3D
 var _anim_tween: Tween
+var _audio_player: AudioStreamPlayer3D
 
 func _ready() -> void:
 	if data == null:
@@ -23,6 +24,8 @@ func _ready() -> void:
 	_in_mag = data.mag_size
 	_reserve = data.reserve_ammo
 	_spawn_view_model()
+	_audio_player = AudioStreamPlayer3D.new()
+	add_child(_audio_player)
 	ammo_changed.emit(_in_mag, _reserve)
 
 func _spawn_view_model() -> void:
@@ -54,6 +57,9 @@ func try_fire() -> void:
 	ammo_changed.emit(_in_mag, _reserve)
 	_spawn_muzzle_flash()
 	_play_fire_animation()
+	if data.fire_sound != null:
+		_audio_player.stream = data.fire_sound
+		_audio_player.play()
 	if data.projectile and data.projectile_scene != null:
 		_spawn_projectile()
 	else:
@@ -106,6 +112,9 @@ func reload() -> void:
 	_reloading = true
 	reload_changed.emit(true)
 	_play_reload_animation()
+	if data.reload_sound != null:
+		_audio_player.stream = data.reload_sound
+		_audio_player.play()
 	await get_tree().create_timer(data.reload_time).timeout
 	var needed: int = data.mag_size - _in_mag
 	var take: int = mini(needed, _reserve)
@@ -189,6 +198,43 @@ func _spawn_impact(pos: Vector3) -> void:
 	get_tree().current_scene.add_child(light)
 	light.global_position = pos
 	_despawn(light, 0.05)
+
+	var particles := GPUParticles3D.new()
+	particles.emitting = false
+	particles.amount = 12
+	particles.lifetime = 0.3
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	var pmat := ParticleProcessMaterial.new()
+	pmat.direction = Vector3(0, 1, 0)
+	pmat.spread = 180.0
+	pmat.initial_velocity_min = 2.0
+	pmat.initial_velocity_max = 6.0
+	pmat.gravity = Vector3(0, -9.8, 0)
+	pmat.scale_min = 0.03
+	pmat.scale_max = 0.08
+	particles.process_material = pmat
+	
+	var pass_mat := StandardMaterial3D.new()
+	pass_mat.albedo_color = data.muzzle_color
+	pass_mat.emission_enabled = true
+	pass_mat.emission = data.muzzle_color
+	pass_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var mesh := BoxMesh.new()
+	mesh.material = pass_mat
+	particles.draw_pass_1 = mesh
+	
+	get_tree().current_scene.add_child(particles)
+	particles.global_position = pos
+	particles.emitting = true
+	_despawn(particles, 0.4)
+
+	var sfx := AudioStreamPlayer3D.new()
+	sfx.stream = load("res://assets/sounds/impact.wav")
+	get_tree().current_scene.add_child(sfx)
+	sfx.global_position = pos
+	sfx.play()
+	_despawn(sfx, 1.0)
 
 func _despawn(node: Node, t: float) -> void:
 	get_tree().create_timer(t).timeout.connect(node.queue_free)

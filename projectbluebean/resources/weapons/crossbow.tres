@@ -1,9 +1,13 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/sounds/crossbow_fire.wav" id="2_cfire"]
+[ext_resource type="AudioStream" path="res://assets/sounds/reload.wav" id="3_rld"]
 
 [resource]
 script = ExtResource("1")
+fire_sound = ExtResource("2_cfire")
+reload_sound = ExtResource("3_rld")
 display_name = "Crossbow"
 damage = 45.0
 fire_rate = 2.5

@@ -15,3 +15,7 @@ class_name WeaponData
 @export var projectile_speed: float = 28.0
 @export var muzzle_color: Color = Color(1.0, 0.85, 0.4)
 @export var view_model: PackedScene           ## optional weapon mesh scene
+
+@export_group("Audio")
+@export var fire_sound: AudioStream
+@export var reload_sound: AudioStream

@@ -64,3 +64,40 @@ func _spawn_impact(pos: Vector3) -> void:
 	get_tree().current_scene.add_child(flash)
 	flash.global_position = pos
 	get_tree().create_timer(0.08).timeout.connect(flash.queue_free)
+
+	var particles := GPUParticles3D.new()
+	particles.emitting = false
+	particles.amount = 12
+	particles.lifetime = 0.3
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	var pmat := ParticleProcessMaterial.new()
+	pmat.direction = Vector3(0, 1, 0)
+	pmat.spread = 180.0
+	pmat.initial_velocity_min = 2.0
+	pmat.initial_velocity_max = 6.0
+	pmat.gravity = Vector3(0, -9.8, 0)
+	pmat.scale_min = 0.03
+	pmat.scale_max = 0.08
+	particles.process_material = pmat
+	
+	var pass_mat := StandardMaterial3D.new()
+	pass_mat.albedo_color = _bolt_color
+	pass_mat.emission_enabled = true
+	pass_mat.emission = _bolt_color
+	pass_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var mesh := BoxMesh.new()
+	mesh.material = pass_mat
+	particles.draw_pass_1 = mesh
+	
+	get_tree().current_scene.add_child(particles)
+	particles.global_position = pos
+	particles.emitting = true
+	get_tree().create_timer(0.4).timeout.connect(particles.queue_free)
+
+	var sfx := AudioStreamPlayer3D.new()
+	sfx.stream = load("res://assets/sounds/impact.wav")
+	get_tree().current_scene.add_child(sfx)
+	sfx.global_position = pos
+	sfx.play()
+	get_tree().create_timer(1.0).timeout.connect(sfx.queue_free)

@@ -1,10 +1,14 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="WeaponData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/FireBolt.tscn" id="2_fqp6i"]
+[ext_resource type="AudioStream" path="res://assets/sounds/staff_fire.wav" id="3_sfire"]
+[ext_resource type="AudioStream" path="res://assets/sounds/reload.wav" id="4_rld"]
 
 [resource]
 script = ExtResource("1")
+fire_sound = ExtResource("3_sfire")
+reload_sound = ExtResource("4_rld")
 display_name = "Fire Staff"
 damage = 30.0
 fire_rate = 6.0
