@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://cynfaeapnlwvs" path="res://scenes/player/Player.tscn" id="2_4p07w"]
 [ext_resource type="Script" path="res://scripts/interactables/buyable_door.gd" id="3_rwl2q"]
 [ext_resource type="Script" path="res://scripts/interactables/buyable_weapon.gd" id="4_507yn"]
+[ext_resource type="Script" path="res://scripts/interactables/buyable_axe.gd" id="6_axe"]
 [ext_resource type="PackedScene" uid="uid://d3r02hvd55oxj" path="res://scenes/ui/HUD.tscn" id="5_507yn"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_73cya"]
@@ -212,8 +213,19 @@ script = ExtResource("4_507yn")
 [node name="Shape" type="CollisionShape3D" parent="WallBuy" unique_id=1102363151]
 shape = SubResource("BoxShape3D_bidsv")
 
-[node name="Panel" type="MeshInstance3D" parent="WallBuy" unique_id=1566710920]
+[node name="Panel" type="MeshInstance3D" parent="WallBuy"]
 material_override = SubResource("StandardMaterial3D_jg37k")
 mesh = SubResource("BoxMesh_mmujr")
 
-[node name="HUD" parent="." unique_id=746987780 instance=ExtResource("5_507yn")]
+[node name="WallBuyAxe" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.3, 1.5, 7)
+script = ExtResource("6_axe")
+
+[node name="Shape" type="CollisionShape3D" parent="WallBuyAxe"]
+shape = SubResource("BoxShape3D_bidsv")
+
+[node name="Panel" type="MeshInstance3D" parent="WallBuyAxe"]
+material_override = SubResource("StandardMaterial3D_jg37k")
+mesh = SubResource("BoxMesh_mmujr")
+
+[node name="HUD" parent="." instance=ExtResource("5_507yn")]

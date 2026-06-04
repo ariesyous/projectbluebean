@@ -52,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_switch_weapon_slot(0)
 	elif event.is_action_pressed("weapon_2"):
 		_switch_weapon_slot(1)
+	elif event.is_action_pressed("weapon_3"):
+		_switch_weapon_slot(2)
 	elif event.is_action_pressed("melee"):
 		_try_melee()
 	elif event.is_action_pressed("reload") and _current_weapon != null \

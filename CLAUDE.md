@@ -14,6 +14,9 @@ Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
 - M2 round/wave system is implemented.
 - M3 foundation is implemented: weapon slots, Staff purchase/refill, quick melee fallback, Fire
   Staff projectile bolts, HUD hit marker, and reload HUD feedback.
+- Added procedural weapon recoil/reload animations.
+- Added Throwing Axe (gravity projectile) as weapon_3 and placed it on the wall in Arena.tscn.
+- Added Ammo Refill interactable (`buyable_ammo.gd`).
 
 Most recently verified through Godot MCP:
 
@@ -22,18 +25,16 @@ Most recently verified through Godot MCP:
 - Reload HUD shows `Reloading`, then returns to ammo text.
 - Fire Staff projectile damage, melee damage, weapon switching, Staff refill, and Round 2
   scheduling were verified in earlier checkpoints.
+- Procedural recoil/reload tweens apply cleanly via `.as_relative()`.
 
 Known current issues / polish:
 
-- There is no reload animation yet.
 - The Crossbow view model still floats somewhat in the middle of the air, but it does not block aim.
 - Existing navmesh warning persists: `Property agent_height is ceiled to cell_height voxel units
   and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
 - No firing/reload SFX yet.
 
-Recommended next step: continue M3 weapon feel polish with a simple reload animation /
-procedural weapon motion, then add weapon SFX. The user specifically noticed the missing reload
-animation.
+Recommended next step: finish M3 weapon feel polish with SFX and impact particles, or begin M4 (Mystery Box / Perks).
 
 ## What this is
 
@@ -161,7 +162,7 @@ for a stationary player.
 
 - **M2 — Round/wave system:** discrete escalating rounds (orc count + health scaling), a
   between-round breather, and round UI. Replaces the M1 cap-limited timer trickle in `arena.gd`.
-- **M3 — Weapon arsenal:** staff → fire-bolt projectile, throwing axe, weapon switching (1/2 keys),
+- **M3 — Weapon arsenal:** staff → fire-bolt projectile, throwing axe, weapon switching (1/2/3 keys),
   reserve-ammo + reload polish, muzzle/impact SFX & VFX.
 - **M4 — Zombies signature systems (fantasy reskin):** Mystery Box, Perk shrines, Pack-a-Punch
   (upgrades the held `WeaponData`).

@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/axe.gd" id="1_axe"]
+[ext_resource type="PackedScene" path="res://assets/weapons/kaykit/axe_1handed.gltf" id="2_axe"]
+
+[node name="Axe" type="Node3D"]
+script = ExtResource("1_axe")
+
+[node name="Model" parent="." instance=ExtResource("2_axe")]
+transform = Transform3D(0.3, 0, 0, 0, 0, -0.3, 0, 0.3, 0, 0, -0.05, -0.15)

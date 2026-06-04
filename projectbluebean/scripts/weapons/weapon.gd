@@ -12,6 +12,7 @@ var _in_mag: int = 0
 var _reserve: int = 0
 var _can_fire: bool = true
 var _reloading: bool = false
+var _view_model: Node3D = null
 
 func _ready() -> void:
 	if data == null:
@@ -24,7 +25,10 @@ func _ready() -> void:
 
 func _spawn_view_model() -> void:
 	if data.view_model != null:
-		add_child(data.view_model.instantiate())
+		_view_model = data.view_model.instantiate()
+		add_child(_view_model)
+	else:
+		_view_model = get_node_or_null("Model")
 
 func is_automatic() -> bool:
 	return data != null and data.automatic
@@ -45,6 +49,7 @@ func try_fire() -> void:
 	_in_mag -= 1
 	ammo_changed.emit(_in_mag, _reserve)
 	_spawn_muzzle_flash()
+	_play_fire_animation()
 	if data.projectile and data.projectile_scene != null:
 		_spawn_projectile()
 	else:
@@ -96,6 +101,7 @@ func reload() -> void:
 		return
 	_reloading = true
 	reload_changed.emit(true)
+	_play_reload_animation()
 	await get_tree().create_timer(data.reload_time).timeout
 	var needed: int = data.mag_size - _in_mag
 	var take: int = mini(needed, _reserve)
@@ -105,7 +111,30 @@ func reload() -> void:
 	reload_changed.emit(false)
 	ammo_changed.emit(_in_mag, _reserve)
 
+func refill_ammo() -> void:
+	if data == null:
+		return
+	_reserve = data.reserve_ammo
+	_in_mag = data.mag_size
+	ammo_changed.emit(_in_mag, _reserve)
+
 # --- Fire feedback ---------------------------------------------------------
+
+func _play_fire_animation() -> void:
+	if _view_model != null:
+		var tween := create_tween()
+		tween.tween_property(_view_model, "position:z", 0.15, 0.05).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.parallel().tween_property(_view_model, "rotation_degrees:x", 8.0, 0.05).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.chain().tween_property(_view_model, "position:z", -0.15, 0.15).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.parallel().tween_property(_view_model, "rotation_degrees:x", -8.0, 0.15).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func _play_reload_animation() -> void:
+	if _view_model != null:
+		var tween := create_tween()
+		var r_time := data.reload_time
+		tween.tween_property(_view_model, "rotation_degrees:x", 45.0, r_time * 0.3).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_interval(r_time * 0.4)
+		tween.tween_property(_view_model, "rotation_degrees:x", -45.0, r_time * 0.3).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 func _spawn_muzzle_flash() -> void:
 	var light := OmniLight3D.new()

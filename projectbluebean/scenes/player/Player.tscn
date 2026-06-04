@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1_wr5hl"]
 [ext_resource type="PackedScene" uid="uid://5ebxfq20jf21" path="res://scenes/weapons/Crossbow.tscn" id="2_gfjak"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/Axe.tscn" id="3_axe"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_gfjak"]
 radius = 0.4
@@ -24,6 +25,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.3, -0.6)
 
 [node name="Crossbow" parent="Head/Camera3D/WeaponHolder" unique_id=2117233098 instance=ExtResource("2_gfjak")]
+
+[node name="Axe" parent="Head/Camera3D/WeaponHolder" instance=ExtResource("3_axe")]
+visible = false
 
 [node name="InteractRay" type="RayCast3D" parent="Head/Camera3D" unique_id=663581385]
 target_position = Vector3(0, 0, -3)

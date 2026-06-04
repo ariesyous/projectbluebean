@@ -19,6 +19,9 @@ Completed and committed so far:
 - Added quick melee on `V` so the player has a fallback when out of ammo.
 - Added Fire Staff projectile bolts.
 - Added HUD weapon feedback: hit marker on confirmed damage and `Reloading` text during reload.
+- Added procedural weapon recoil and reload animations using tweens.
+- Added ammo refill affordance via a `buyable_ammo` interactable script.
+- Added Throwing Axe as a third weapon (projectile with gravity) and placed its wall-buy in the starting arena.
 
 Recent commits:
 
@@ -47,6 +50,8 @@ Verified most recently:
 - Hit marker appears on confirmed Crossbow/projectile/melee damage and clears after its flash.
 - Weapon switching and Staff re-buy/refill work without duplicating slots.
 - Round 1 and Round 2 scheduling work.
+- Throwing Axe projectile arcs correctly and damages enemies.
+- Ammo refill interactable restores mag and reserve correctly.
 
 Known recurring warning:
 
@@ -74,20 +79,13 @@ Known git/sandbox quirk:
 
 ## Best Next Step
 
-Continue M3 weapon polish.
+Finish M3 weapon polish or begin M4 systems.
 
-Recommended next task: add a simple reload animation / weapon handling feedback. The user noted
-there is no reload animation and the Crossbow hangs in the air, but aim is not blocked. A small
-procedural reload motion in `weapon.gd` or per-weapon scene transforms is probably the fastest
-high-value improvement.
+Recommended next task: Add Staff/Crossbow/Axe firing and reload SFX, and stronger projectile impact particles/light.
 
 Other good next tasks:
 
-- Add Staff/Crossbow firing and reload SFX.
-- Add stronger projectile impact particles/light.
-- Add the KayKit throwing axe as a third weapon or throwable.
-- Add ammo pickup/refill affordances if ammo scarcity feels too punishing.
-- Start M4 with a simple Mystery Box or perk shrine once M3 feel is satisfying.
+- Start M4 with a simple Mystery Box or perk shrine.
 
 ## User Preferences / Context
 
