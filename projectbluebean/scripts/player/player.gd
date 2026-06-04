@@ -8,6 +8,9 @@ extends CharacterBody3D
 @export var max_health: float = 100.0
 @export var health_regen_delay: float = 5.0   ## seconds after last hit before regen
 @export var health_regen_rate: float = 25.0   ## hp per second once regen starts
+@export var melee_damage: float = 55.0
+@export var melee_range: float = 2.2
+@export var melee_cooldown: float = 0.65
 
 signal health_changed(current: float, maximum: float)
 signal weapon_changed(weapon: Node)
@@ -16,7 +19,11 @@ signal interact_target_changed(target)  ## the interactable Node, or null
 var health: float
 var _time_since_damage: float = 999.0
 var _current_weapon: Node = null
+var _current_weapon_slot: int = -1
+var _weapon_slots: Array[Node3D] = []
+var _weapon_scene_paths: Array[String] = []
 var _current_interactable = null
+var _melee_timer: float = 0.0
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -27,9 +34,7 @@ func _ready() -> void:
 	add_to_group("player")
 	health = max_health
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if weapon_holder.get_child_count() > 0:
-		_current_weapon = weapon_holder.get_child(0)
-	weapon_changed.emit(_current_weapon)
+	_register_starting_weapons()
 	health_changed.emit(health, max_health)
 	GameState.player_died.connect(_on_player_died)
 
@@ -43,7 +48,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if GameState.is_game_over:
 		return
-	if event.is_action_pressed("fire"):
+	if event.is_action_pressed("weapon_1"):
+		_switch_weapon_slot(0)
+	elif event.is_action_pressed("weapon_2"):
+		_switch_weapon_slot(1)
+	elif event.is_action_pressed("melee"):
+		_try_melee()
+	elif event.is_action_pressed("reload") and _current_weapon != null \
+			and _current_weapon.has_method("reload"):
+		_current_weapon.reload()
+	elif event.is_action_pressed("fire"):
 		# If the cursor was freed (alt-tab / pause), the first click just
 		# re-captures it instead of also firing.
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
@@ -51,9 +65,90 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif _current_weapon != null and _current_weapon.has_method("try_fire") \
 				and not _current_weapon.is_automatic():
 			_current_weapon.try_fire()
-	elif event.is_action_pressed("reload") and _current_weapon != null \
-			and _current_weapon.has_method("reload"):
-		_current_weapon.reload()
+
+func _register_starting_weapons() -> void:
+	_weapon_slots.clear()
+	_weapon_scene_paths.clear()
+	for child in weapon_holder.get_children():
+		var weapon := child as Node3D
+		if weapon == null:
+			continue
+		_weapon_slots.append(weapon)
+		_weapon_scene_paths.append(weapon.scene_file_path)
+	if not _weapon_slots.is_empty():
+		_switch_weapon_slot(0)
+	else:
+		weapon_changed.emit(null)
+
+func _switch_weapon_slot(slot: int) -> void:
+	if slot < 0 or slot >= _weapon_slots.size():
+		return
+	var weapon := _weapon_slots[slot]
+	if weapon == null or not is_instance_valid(weapon):
+		return
+	_current_weapon_slot = slot
+	_current_weapon = weapon
+	for i in _weapon_slots.size():
+		if _weapon_slots[i] != null and is_instance_valid(_weapon_slots[i]):
+			_weapon_slots[i].visible = i == _current_weapon_slot
+	weapon_changed.emit(_current_weapon)
+
+func _find_weapon_slot(scene_path: String) -> int:
+	for i in _weapon_scene_paths.size():
+		if _weapon_scene_paths[i] == scene_path:
+			return i
+	return -1
+
+func _add_or_refill_weapon(weapon_scene: PackedScene) -> int:
+	var scene_path := weapon_scene.resource_path
+	var slot := _find_weapon_slot(scene_path)
+	var weapon := weapon_scene.instantiate() as Node3D
+	if weapon == null:
+		return -1
+	if slot == -1:
+		weapon_holder.add_child(weapon)
+		_weapon_slots.append(weapon)
+		_weapon_scene_paths.append(scene_path)
+		return _weapon_slots.size() - 1
+	var old_weapon := _weapon_slots[slot]
+	if old_weapon != null and is_instance_valid(old_weapon):
+		weapon_holder.remove_child(old_weapon)
+		old_weapon.queue_free()
+	weapon_holder.add_child(weapon)
+	weapon_holder.move_child(weapon, slot)
+	_weapon_slots[slot] = weapon
+	_weapon_scene_paths[slot] = scene_path
+	return slot
+
+func _try_melee() -> void:
+	if _melee_timer > 0.0:
+		return
+	_melee_timer = melee_cooldown
+	var from := camera.global_position
+	var to := from + (-camera.global_transform.basis.z) * melee_range
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1 | 4   # world + enemies
+	query.collide_with_areas = false
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		_spawn_melee_feedback(to, false)
+		return
+	var point: Vector3 = hit.get("position", to)
+	var collider = hit.get("collider")
+	if collider != null and collider.has_method("take_damage"):
+		collider.take_damage(melee_damage)
+		_spawn_melee_feedback(point, true)
+	else:
+		_spawn_melee_feedback(point, false)
+
+func _spawn_melee_feedback(pos: Vector3, hit_enemy: bool) -> void:
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.35, 0.15) if hit_enemy else Color(0.8, 0.8, 0.8)
+	light.light_energy = 2.4 if hit_enemy else 1.2
+	light.omni_range = 1.4
+	get_tree().current_scene.add_child(light)
+	light.global_position = pos
+	get_tree().create_timer(0.06).timeout.connect(light.queue_free)
 
 func _toggle_mouse() -> void:
 	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -64,6 +159,7 @@ func _toggle_mouse() -> void:
 func _physics_process(delta: float) -> void:
 	if GameState.is_game_over:
 		return
+	_melee_timer = maxf(_melee_timer - delta, 0.0)
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	if Input.is_action_just_pressed("jump") and is_on_floor():
@@ -121,14 +217,11 @@ func take_damage(amount: float) -> void:
 		health = 0.0
 		GameState.notify_player_died()
 
-## Swap the held weapon. `weapon_scene` is a PackedScene of a Weapon.
+## Add/refill a weapon, then switch to that slot. `weapon_scene` is a PackedScene of a Weapon.
 func equip_weapon(weapon_scene: PackedScene) -> void:
-	for c in weapon_holder.get_children():
-		c.queue_free()
-	var w: Node = weapon_scene.instantiate()
-	weapon_holder.add_child(w)
-	_current_weapon = w
-	weapon_changed.emit(w)
+	var slot := _add_or_refill_weapon(weapon_scene)
+	if slot != -1:
+		_switch_weapon_slot(slot)
 
 func _on_player_died() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
