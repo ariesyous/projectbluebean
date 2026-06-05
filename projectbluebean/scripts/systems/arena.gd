@@ -3,6 +3,7 @@ extends Node3D
 ## rounds with short breathers between them.
 
 const ORC_SCENE := preload("res://scenes/enemies/Orc.tscn")
+const DungeonAmbience := preload("res://scripts/fx/dungeon_ambience.gd")
 
 # Dungeon geometry: KayKit Dungeon Remastered, built on a 4-unit grid.
 const KIT := "res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/"
@@ -32,6 +33,7 @@ func _ready() -> void:
 	GameState.reset()
 	Economy.reset()
 	_build_dungeon()
+	_start_ambient_audio()
 	await _bake_navigation()
 	_start_round()
 
@@ -96,6 +98,13 @@ func _build_dungeon() -> void:
 			if torch_i % 3 == 0:
 				_place_torch(Vector3(wx, 0.0, wz), dir, props)
 
+	_place_dungeon_props(props)
+
+func _start_ambient_audio() -> void:
+	var ambience := DungeonAmbience.new()
+	ambience.name = "DungeonAmbience"
+	add_child(ambience)
+
 func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
 	var inner := Vector3(-dir.x, 0.0, -dir.y)   # toward the room interior
 	var torch: Node3D = load(KIT + "torch_mounted.gltf").instantiate()
@@ -110,6 +119,51 @@ func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
 	light.shadow_enabled = false
 	props.add_child(light)
 	light.global_position = wall_pos + inner * 0.6 + Vector3(0.0, 2.7, 0.0)
+
+func _place_dungeon_props(props: Node3D) -> void:
+	# Start room: readable silhouettes near the side walls, leaving the lane clear.
+	_place_prop("barrel_large_decorated.gltf", Vector3(-7.2, 0.0, 22.7), deg_to_rad(24.0), props)
+	_place_prop("crates_stacked.gltf", Vector3(7.2, 0.0, 22.4), deg_to_rad(-18.0), props)
+	_place_wall_prop("banner_shield_blue.gltf", Vector3(0.0, 0.0, 26.0), Vector2i(0, 1), props, 2.25)
+
+	# Combat room: clutter the edges only so orc routes stay clean.
+	_place_prop("table_medium_broken.gltf", Vector3(-8.5, 0.0, -5.5), deg_to_rad(55.0), props)
+	_place_prop("barrel_small_stack.gltf", Vector3(10.5, 0.0, 5.7), deg_to_rad(-30.0), props)
+	_place_prop("pillar_decorated.gltf", Vector3(-10.0, 0.0, 6.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(10.0, 0.0, -6.0), PI, props)
+	_place_wall_prop("banner_patternA_red.gltf", Vector3(-14.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
+	_place_wall_prop("banner_patternA_green.gltf", Vector3(14.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
+
+	# Vault room: richer dressing around the perk and Pack-a-Punch machines.
+	_place_prop("table_long_decorated_A.gltf", Vector3(0.0, 0.0, -21.2), PI, props)
+	_place_prop("barrel_large.gltf", Vector3(-6.8, 0.0, -22.5), deg_to_rad(12.0), props)
+	_place_prop("barrel_small.gltf", Vector3(6.5, 0.0, -22.0), deg_to_rad(-8.0), props)
+	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -26.0), Vector2i(0, -1), props, 2.25)
+
+func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) -> void:
+	var scene := load(KIT + model) as PackedScene
+	if scene == null:
+		push_warning("Missing dungeon prop: " + model)
+		return
+	var prop := scene.instantiate() as Node3D
+	if prop == null:
+		return
+	props.add_child(prop)
+	prop.position = position
+	prop.rotation.y = yaw
+
+func _place_wall_prop(model: String, wall_pos: Vector3, dir: Vector2i, props: Node3D, height: float) -> void:
+	var inner := Vector3(-dir.x, 0.0, -dir.y)
+	var scene := load(KIT + model) as PackedScene
+	if scene == null:
+		push_warning("Missing dungeon wall prop: " + model)
+		return
+	var prop := scene.instantiate() as Node3D
+	if prop == null:
+		return
+	props.add_child(prop)
+	prop.global_position = wall_pos + inner * 0.42 + Vector3(0.0, height, 0.0)
+	prop.look_at(prop.global_position + inner, Vector3.UP)
 
 func _collect_cells() -> void:
 	_add_room(Rect2i(-2, 4, 5, 3))     # Room A (start)

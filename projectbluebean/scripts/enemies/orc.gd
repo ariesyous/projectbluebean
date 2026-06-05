@@ -12,6 +12,7 @@ const DEATH_LEN := 2.0
 @export var attack_range: float = 1.9
 @export var attack_cooldown: float = 1.2
 @export var point_reward: int = 60
+@export var blood_color: Color = Color(0.42, 0.025, 0.015, 1.0)
 
 var health: float
 var _attack_timer: float = 0.0
@@ -99,12 +100,49 @@ func _attack() -> void:
 	if _player != null and _player.has_method("take_damage"):
 		_player.take_damage(attack_damage)
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, hit_position: Variant = null, hit_normal: Vector3 = Vector3.ZERO) -> void:
 	if _dead:
 		return
+	var impact_pos := global_position + Vector3(0.0, 1.25, 0.0)
+	if hit_position is Vector3:
+		impact_pos = hit_position
+	_spawn_blood_burst(impact_pos, hit_normal)
 	health -= amount
 	if health <= 0.0:
 		_die()
+
+func _spawn_blood_burst(pos: Vector3, normal: Vector3) -> void:
+	var particles := GPUParticles3D.new()
+	particles.emitting = false
+	particles.amount = 22
+	particles.lifetime = 0.42
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+
+	var pmat := ParticleProcessMaterial.new()
+	var burst_dir := normal.normalized() if normal.length() > 0.01 else Vector3.UP
+	pmat.direction = (burst_dir + Vector3.UP * 0.25).normalized()
+	pmat.spread = 72.0
+	pmat.initial_velocity_min = 1.8
+	pmat.initial_velocity_max = 5.6
+	pmat.gravity = Vector3(0.0, -11.0, 0.0)
+	pmat.scale_min = 0.035
+	pmat.scale_max = 0.09
+	pmat.color = blood_color
+	particles.process_material = pmat
+
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = blood_color
+	mat.roughness = 0.85
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.08, 0.035, 0.08)
+	mesh.material = mat
+	particles.draw_pass_1 = mesh
+
+	get_tree().current_scene.add_child(particles)
+	particles.global_position = pos
+	particles.emitting = true
+	get_tree().create_timer(0.7).timeout.connect(particles.queue_free)
 
 func _die() -> void:
 	_dead = true

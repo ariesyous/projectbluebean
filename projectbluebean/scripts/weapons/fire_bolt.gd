@@ -49,9 +49,10 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var point: Vector3 = hit.get("position", to)
+	var normal: Vector3 = hit.get("normal", Vector3.ZERO)
 	var collider = hit.get("collider")
 	if collider != null and collider.has_method("take_damage"):
-		collider.take_damage(damage)
+		collider.take_damage(damage, point, normal)
 		GameState.notify_hit_confirmed()
 	_spawn_impact(point)
 	queue_free()

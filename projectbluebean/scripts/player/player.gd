@@ -156,9 +156,10 @@ func _try_melee() -> void:
 		_spawn_melee_feedback(to, false)
 		return
 	var point: Vector3 = hit.get("position", to)
+	var normal: Vector3 = hit.get("normal", Vector3.ZERO)
 	var collider = hit.get("collider")
 	if collider != null and collider.has_method("take_damage"):
-		collider.take_damage(melee_damage)
+		collider.take_damage(melee_damage, point, normal)
 		GameState.notify_hit_confirmed()
 		_spawn_melee_feedback(point, true)
 	else:

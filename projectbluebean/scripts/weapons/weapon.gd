@@ -119,11 +119,12 @@ func _do_hitscan() -> Vector3:
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
 		return to
+	var point: Vector3 = hit.get("position", to)
+	var normal: Vector3 = hit.get("normal", Vector3.ZERO)
 	var collider = hit.get("collider")
 	if collider != null and collider.has_method("take_damage"):
-		collider.take_damage(data.damage)
+		collider.take_damage(data.damage, point, normal)
 		GameState.notify_hit_confirmed()
-	var point: Vector3 = hit.get("position", to)
 	_spawn_impact(point)
 	return point
 
