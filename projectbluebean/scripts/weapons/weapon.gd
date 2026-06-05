@@ -17,6 +17,7 @@ var _base_transform: Transform3D
 var _anim_tween: Tween
 var _audio_player: AudioStreamPlayer3D
 var _player: Node = null
+var upgraded: bool = false   ## true once Pack-a-Punched
 
 func _ready() -> void:
 	if data == null:
@@ -153,6 +154,25 @@ func refill_ammo() -> void:
 	_reserve = data.reserve_ammo
 	_in_mag = data.mag_size
 	ammo_changed.emit(_in_mag, _reserve)
+
+func is_upgraded() -> bool:
+	return upgraded
+
+## Pack-a-Punch: upgrade this weapon. Duplicates the WeaponData first so the
+## shared .tres resource is never mutated, then boosts the copy.
+func pack_a_punch() -> bool:
+	if data == null or upgraded:
+		return false
+	data = data.duplicate()
+	data.damage *= 2.0
+	data.mag_size = int(round(data.mag_size * 1.5))
+	data.reserve_ammo = int(round(data.reserve_ammo * 1.5))
+	data.fire_rate *= 1.15
+	data.display_name = data.display_name + " +"
+	data.muzzle_color = Color(0.65, 0.4, 1.0)   ## upgraded glow (violet)
+	upgraded = true
+	refill_ammo()
+	return true
 
 # --- Fire feedback ---------------------------------------------------------
 

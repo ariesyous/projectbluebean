@@ -100,10 +100,18 @@ func _on_weapon_changed(weapon) -> void:
 			_on_reload_changed(weapon.is_reloading())
 	else:
 		ammo_label.text = "-- / --"
+		_update_ammo_style()
 
 func _on_ammo_changed(in_mag: int, reserve: int) -> void:
 	_last_ammo = Vector2i(in_mag, reserve)
 	ammo_label.text = "%d / %d" % [in_mag, reserve]
+	_update_ammo_style()
+
+## Tint the ammo readout violet when the held weapon is Pack-a-Punched.
+func _update_ammo_style() -> void:
+	var up: bool = _tracked_weapon != null and is_instance_valid(_tracked_weapon) \
+		and _tracked_weapon.has_method("is_upgraded") and _tracked_weapon.is_upgraded()
+	ammo_label.modulate = Color(0.75, 0.55, 1.0) if up else Color(1, 1, 1)
 
 func _on_reload_changed(is_reloading: bool) -> void:
 	if is_reloading:

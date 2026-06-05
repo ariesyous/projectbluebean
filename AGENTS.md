@@ -29,6 +29,11 @@ Completed and committed so far:
   subclasses on a shared `scenes/interactables/PerkShrine.tscn`): Stamina (move speed ×1.35),
   Quick Hands (reload ×0.5), Frenzy (fire rate ×1.5). Player tracks perks + `fire_rate_mult`/
   `reload_time_mult`; `weapon.gd` reads them so future weapons benefit. HUD shows owned perks.
+- Added M4 **Pack-a-Punch** (`buyable_pap.gd` on `scenes/interactables/PackAPunch.tscn`):
+  5000 pts upgrades the held weapon once. `weapon.pack_a_punch()` **duplicates** the WeaponData
+  before boosting (damage ×2, mag/reserve ×1.5, fire_rate ×1.15, violet muzzle, "+" name,
+  ammo refill) so the shared `.tres` is never mutated. HUD tints the ammo readout violet when
+  the held weapon is upgraded. **This completes M4.**
 
 Recent commits:
 
@@ -69,6 +74,11 @@ Verified most recently:
   is blocked (empty prompt, no double-apply); the consumed shrine dims its glow; HUD shows
   "Perks: Stamina, Quick Hands, Frenzy"; perks reset on scene reload. Screenshot confirms the
   three colour-tinted shrines (blue/amber/green) in the far room.
+- Pack-a-Punch: upgrading the Crossbow set damage 45->90, mag 6->9, reserve 60->90, name
+  "Crossbow +", violet muzzle, and refilled ammo, while the source `crossbow.tres` stayed at
+  damage 45 (duplicate confirmed). Re-purchase on an upgraded weapon is blocked (0 spent); a
+  freshly equipped Staff is upgradeable independently; the ammo readout tints violet only while
+  an upgraded weapon is held. Screenshot confirms the glowing-portal machine in the far room.
 
 Known recurring warning:
 
@@ -96,12 +106,16 @@ Known git/sandbox quirk:
 
 ## Best Next Step
 
-M3 polish, the M4 Mystery Box, and the M4 Perk shrines are in. Finish M4 with **Pack-a-Punch**.
+**M4 is complete** (Mystery Box, Perk shrines, Pack-a-Punch). Begin **M5 — Map & atmosphere**.
 
-Recommended next task: add a Pack-a-Punch shrine that upgrades the held weapon. **Duplicate**
-the held weapon's `WeaponData` (`weapon.data = weapon.data.duplicate()`) before boosting
-damage/mag/fire_rate so the shared `.tres` (loaded/cached) is never mutated. Mark upgraded
-weapons (e.g. recolor `muzzle_color`, tweak `display_name`) and reflect it on the HUD.
+Recommended next task: replace the greybox arena with a real dungeon kit (KayKit Dungeon
+Remastered, CC0, already suggested) and add torch/dynamic lighting, fog, and ambient audio.
+The far room is currently crowded with all M4 interactables (box, three perk shrines, PaP) —
+spread these across the new multi-room layout as you build it. Other M5 work: barricades orcs
+break, and blood/impact particles.
+
+Possible M4 polish if revisited: a Mystery Box that relocates, perk loss/limit, and a HUD
+weapon-name label (the upgraded "+" name is only surfaced via the violet ammo tint today).
 
 ## User Preferences / Context
 
