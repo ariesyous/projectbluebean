@@ -49,12 +49,13 @@ Completed and committed so far:
 
 Recent commits (newest first):
 
+- `e31b967 Add visible quick melee animation`
+- `b6fd93a M5: add gated dungeon loop route`
+- `539d4f0 Docs: backlog loop-based dungeon layout`
+- `c1486d5 M5: add dungeon ambience and hit polish`
 - `ec5c251 M5: torch-lit dungeon atmosphere`
 - `adf6675 M5: replace greybox with KayKit modular dungeon`
 - `da7399d Add M4 Pack-a-Punch weapon upgrade machine`
-- `0f5355a Add M4 perk shrines (Stamina, Quick Hands, Frenzy)`
-- `89a3839 Add M4 Mystery Box (random weapon roll for points)`
-- `afcfadf Add weapon audio and visual impact polish`
 
 ## Verification Notes
 
@@ -145,14 +146,16 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-M4 is complete; **M5 is underway** - the modular dungeon, gated vault loop, torch/fog atmosphere,
-ambient audio, props, and orc-hit blood particles are in. Remaining M5 polish is mainly
-**barricades orcs break**, doorway arches/corners, and loop feel tuning.
-Consider tuning torch/ambient brightness for playability and adding `wall_corner` pieces so
-convex corners don't rely on overlapping straight walls.
+M4 is complete; **M5 is playable and mostly complete** - the modular dungeon, gated vault loop,
+torch/fog atmosphere, ambient audio, props, orc-hit blood particles, and visible quick melee are
+in. Remaining near-term polish is loop feel tuning, torch/ambient brightness, doorway
+arches/corners, and adding `wall_corner` pieces so convex corners don't rely on overlapping
+straight walls.
 
 Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (ranged shaman,
 heavy brute), a boss round, downed/revive, and a persistent high-round score.
+
+Roadmap, not immediate backlog: breakable barricades that orcs can destroy.
 
 M5 map-design tuning backlog: playtest the new gated vault loop at higher rounds and adjust
 widths, sightlines, spawn pressure, door cost, and machine placement until kiting feels tense

@@ -6,8 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The newest concise handoff is in `AGENTS.md`. Read that first in a new thread.
 
-Current status as of commit `ec5c251 M5: torch-lit dungeon atmosphere`. **M1–M4 are
-complete; M5 (map & atmosphere) is in progress.**
+Current status: **M1-M4 are complete; M5 (map & atmosphere) is playable and mostly complete.**
 
 - M1 core loop/economy is playable.
 - Goblin/orc hit detection is fixed.
@@ -60,9 +59,9 @@ Known current issues / polish:
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
-Recommended next step: finish M5 polish - breakable barricades, doorway arches/corners, and loop
-feel tuning after manual playtest. Then start M6 (menus, special orc types, boss round, high
-score).
+Recommended next step: loop feel tuning after manual playtest, then doorway arches/corners and
+brightness/readability polish. Breakable barricades are roadmap, not immediate backlog. After
+that, start M6 (menus, special orc types, boss round, high score).
 
 ## What this is
 
@@ -194,8 +193,8 @@ for a stationary player.
   reserve-ammo + reload polish, muzzle/impact SFX & VFX.
 - **M4 — Zombies signature systems (fantasy reskin):** Mystery Box, Perk shrines, Pack-a-Punch
   (upgrades the held `WeaponData`).
-- **M5 — Map & atmosphere:** multi-room dungeon from a real kit, barricades orcs break, torch
-  lighting, fog, ambient audio, blood/impact particles.
+- **M5 — Map & atmosphere:** multi-room dungeon from a real kit, gated loop route, torch
+  lighting, fog, ambient audio, blood/impact particles. Future roadmap: barricades orcs break.
 - **M6 — Meta & game feel:** main menu, pause, settings, downed/revive, special orc types
   (ranged shaman, heavy brute), a boss round, persistent high score.
 
