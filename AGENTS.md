@@ -86,15 +86,15 @@ Completed and committed so far:
 
 Recent commits (newest first):
 
+- `1e5779a Fix M7 regression: restore per-frame player updates`
+- `f7b9e16 M7: sprint + stamina`
+- `5091cee M6: prop collision, shrine/table fix, smaller orcs, door swing`
+- `4f24697 M5 polish: ceiling, corner pillars, door model, brighter lighting`
+- `8bc1f06 Docs: update web export handoff`
 - `90e2d0a Fix web export dependencies`
 - `190cb5c Add web export for GitHub Pages`
 - `e31b967 Add visible quick melee animation`
-- `b6fd93a M5: add gated dungeon loop route`
-- `539d4f0 Docs: backlog loop-based dungeon layout`
-- `c1486d5 M5: add dungeon ambience and hit polish`
-- `ec5c251 M5: torch-lit dungeon atmosphere`
 - `adf6675 M5: replace greybox with KayKit modular dungeon`
-- `da7399d Add M4 Pack-a-Punch weapon upgrade machine`
 
 ## Verification Notes
 
@@ -167,6 +167,37 @@ Known git/sandbox quirk:
   The repo can still be clean. Git staging/commits may require escalated permission because the
   sandbox cannot write `.git/index.lock`.
 
+## MCP workflow gotchas (learned the hard way — read before editing)
+
+- **Edit `res://` files only through the godot-ai MCP** — `script_create`/`script_patch` for `.gd`,
+  scene/node verbs + `scene_save` for `.tscn`, `filesystem_manage write_text`/`read_text` for
+  `.tres` and ground-truth reads. The shell/`Write`/`Read` tools see the OUTER tree, which the
+  engine can't load from. (OUTER-tree files like `AGENTS.md`, `CLAUDE.md`, `docs/`,
+  `export_presets.cfg` are fine to edit with normal file tools.) Full rules live in `CLAUDE.md`.
+- **A "wedged" play session is almost always a parse error.** Symptom: `project_run` returns a
+  *frozen* `run_id`, the game log buffer never clears, and `game_eval`/`editor_screenshot` report
+  "capture never registered". The editor is still running the last good *cached* build because the
+  new script failed to compile. Fix: check `logs_read(source="editor")` for a `Parse Error`, fix it,
+  then (if it persists) have the user do **Project → Reload Current Project** to clear the cache.
+- **`game_eval` needs the game window focused**, and capture registration lags boot — wait ~6s after
+  `project_run` (a backgrounded `sleep` works) before evaluating. `Input.action_press(...)` takes a
+  frame to register, so warm it with one throwaway call before reading the resulting state.
+- **GDScript typing:** `var x := <expr>` cannot infer from an untyped (Variant) value such as a loop
+  var (`for n in array`, `stack.pop_back()`). Cast (`var mi := n as MeshInstance3D`) or annotate
+  (`var t: Transform3D = ...`). A parse error here silently breaks the *whole* script.
+- **`script_patch` near the end of a function:** when inserting a new `func` right after another
+  function's last statement, make sure you don't strand that function's trailing lines after the new
+  `return` as dead code. This exact mistake moved `_update_weapon_visuals`/`_handle_weapon_input`/
+  `_update_interaction`/`_update_health_regen` out of `_physics_process` and silently broke weapon
+  bob, auto-fire, buying, and health regen.
+- **Navmesh carving:** colliders parented under `NavigationRegion3D` are carved by the bake, so a
+  prop in a 4-wide corridor/arm disconnects the mesh. Keep narrow lanes prop-free and re-verify with
+  `NavigationServer3D.map_get_path(map, from, to, true)` to a known target after changing geometry.
+- **Verify deterministically with `game_eval`** (read health/stamina/positions, call functions, run
+  `map_get_path`) rather than relying on screenshots — the running game is dark and the death overlay
+  (`HUD/Root/GameOver`) dims captures. To inspect a static scene, set `GameState.is_game_over = true`
+  + free orcs + `player.set_physics_process(false)` + hide the overlay, then screenshot.
+
 ## Important Paths
 
 - Main scene: `projectbluebean/scenes/world/Arena.tscn`
@@ -186,6 +217,11 @@ Known git/sandbox quirk:
   `_place_torch`); torch flicker in `scripts/fx/torch_flicker.gd`. Kit at
   `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/` (4-unit grid: floor
   tiles 4×4, walls 4×4×1; measured via AABB). Dark Environment + dimmed Sun set on `Arena.tscn`.
+- M5 polish + M6 helpers (all in `arena.gd`): `_build_ceiling` / `_build_corner_pillars` /
+  `_corner_yaw` / `_decorate_buyable_door` / `_add_prop_collider` / `_tune_environment`. Door swing
+  in `scripts/interactables/buyable_door.gd`.
+- M7 sprint/stamina: `player.gd` (`_update_stamina`, `stamina_changed` signal, `@export` tunables) +
+  `hud.gd` `StaminaBar` + `HUD.tscn`; `sprint` input action (Shift) is in `project.godot`.
 
 - Web export preset: `projectbluebean/export_presets.cfg`
 - GitHub Pages output: `docs/index.html`, `docs/index.js`, `docs/index.wasm`, `docs/index.pck`,
@@ -209,32 +245,23 @@ below is reorganized around **playtest feedback from 2026-06-05** (verbatim note
 it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. **M6 is
 done** (see Completed list); next up is **M8 → M11**; confirm scope with the user before each.
 
-### M6 — Map fixes & quick feel wins (DONE)
-- **Prop collision.** Hallway props (barrels, tables, crates, pillars) are placed by
-  `_place_prop` / `_place_wall_prop` in `arena.gd` with **no colliders**, so the player *and*
-  orcs clip straight through them. Add collision (a `StaticBody3D` + convex/box shape per prop)
-  when instancing.
-- **Perk shrine clipping into the food table.** In `_place_dungeon_props`, `PerkSpeed` (Arena.tscn
-  at `(0,0,-34)`) overlaps `table_long_decorated_A` at `(0,0,-34.2)` — the shrine sits inside the
-  table and both are walk-through. Move the table (or shrine) and make sure every shrine stands on
-  clear floor with collision.
-- **Shrink the orcs ~15–20%.** They tower over the player — spooky, but you can't outmaneuver them
-  in narrow halls. Scale the model + collider in `Orc.tscn`, then re-verify hit detection, nav
-  agent radius/height, and attack range.
-- **Door open animation + SFX.** The buyable door just vanishes on purchase. Animate the new
-  `wall_doorway` model (swing or slide) with a sound before `queue_free`
-  (`buyable_door.gd._on_purchased`).
+### M6 — Map fixes & quick feel wins (DONE — see Completed list)
+### M7 — Sprint / stamina (DONE — see Completed list)
 
-### M7 — Sprint / stamina (DONE)
-
-### M8 — Barricades & entry points (Zombies signature; medium–large, high value)
-- Orcs currently "drop in" at `SpawnPoints` markers, which feels jarring. Replace with fixed
-  **entry points** — barricaded windows / wall cavities the orcs must **break through**. Kit has
-  `barrier*.gltf`, `wall_archedwindow_gated`, `wall_window_*`, `wall_broken`, `barrier_corner`.
+### M8 — Barricades & entry points (⭐ NEXT — Zombies signature; medium–large, high value)
+- Orcs currently "drop in" at `SpawnPoints` markers (`Arena.tscn`, spawned by `arena.gd._spawn_orc`),
+  which feels jarring. Replace with fixed **entry points** — barricaded windows / wall cavities the
+  orcs must **break through**. Kit has `barrier*.gltf`, `wall_archedwindow_gated`, `wall_window_*`,
+  `wall_broken`, `barrier_corner`.
 - The player can **repair** a barricade by interacting (rebuild boards, small point reward, à la
   CoD Zombies) — the core defensive loop for rounds ~1–15. Needs barricade health, an orc
   tear-down animation/SFX, board-by-board repair, and a spawner rework in `arena.gd` that pulls
   orcs from entry points instead of the current cap-limited markers.
+- **Confirm scope with the user before building:** how many entry points, repair cost/reward,
+  whether orcs attack barricades or just path through once broken, and how entry points relate to
+  the round spawner. This is the biggest behavioural change since M5 — design first, then build in
+  small verifiable pieces (entry-point geometry → orc break behaviour → player repair → spawner
+  rework).
 
 ### M9 — Weapon overhaul & models (medium)
 - **Axe rework** (`scenes/weapons/Axe.tscn` + `AxeProjectile.tscn` + axe weapon data/script):
@@ -261,7 +288,7 @@ done** (see Completed list); next up is **M8 → M11**; confirm scope with the u
 - Web export browser smoke test: hard-refresh / cache-bust
   `https://ariesyous.github.io/projectbluebean/?v=<sha>` and confirm it isn't a gray screen; if it
   is, grab the browser console error and patch the Web preset.
-- Loop-feel tuning knobs (revisit during/after M6): door cost (`buyable_door.gd` = 1000) and the
+- Loop-feel tuning knobs (revisit alongside M8): door cost (`buyable_door.gd` = 1000) and the
   `arena.gd` spawn exports (`spawn_interval`, `max_alive`, `enemies_added_per_round`, health/speed
   scales).
 
