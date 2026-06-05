@@ -22,15 +22,18 @@ Completed and committed so far:
 - Added procedural weapon recoil and reload animations using tweens.
 - Added ammo refill affordance via a `buyable_ammo` interactable script.
 - Added Throwing Axe as a third weapon (projectile with gravity) and placed its wall-buy in the starting arena.
+- Added procedural weapon sway/bob and firing/reload SFX + impact VFX (M3 feel polish).
+- Started M4: added the **Mystery Box** (`scripts/interactables/mystery_box.gd` +
+  `scenes/interactables/MysteryBox.tscn`), placed in the far room behind the BuyableDoor.
 
 Recent commits:
 
+- `afcfadf Add weapon audio and visual impact polish`
+- `ba47ccb Fix weapon procedural animation drifting on rapid fire`
+- `daf786a Implement procedural weapon sway and bob`
+- `7172aa6 Add throwing axe, procedural weapon animations, and ammo refills`
 - `dfd4c30 Add weapon hit and reload feedback`
-- `d9905c7 Add Fire Staff projectile bolts`
-- `e75c70a Add weapon slots and melee fallback`
-- `7a76921 Add round wave system`
 - `2751734 Use KayKit weapon view models`
-- `6620e90 Fix goblin hit detection`
 
 ## Verification Notes
 
@@ -52,6 +55,10 @@ Verified most recently:
 - Round 1 and Round 2 scheduling work.
 - Throwing Axe projectile arcs correctly and damages enemies.
 - Ammo refill interactable restores mag and reserve correctly.
+- Mystery Box: rolling spends exactly 950, cycles weapon models, settles on a random weapon,
+  and presenting it again grants the weapon (refills an owned one or adds a new slot and
+  switches to it). Box resets to IDLE after a grab; the present timeout dismisses the weapon
+  with no refund. Verified via `game_eval` and a `game` screenshot of the chest + floating prop.
 
 Known recurring warning:
 
@@ -79,13 +86,12 @@ Known git/sandbox quirk:
 
 ## Best Next Step
 
-Finish M3 weapon polish or begin M4 systems.
+M3 polish and the M4 Mystery Box are in. Continue M4 with **Perk shrines**.
 
-Recommended next task: Add Staff/Crossbow/Axe firing and reload SFX, and stronger projectile impact particles/light.
-
-Other good next tasks:
-
-- Start M4 with a simple Mystery Box or perk shrine.
+Recommended next task: add perk shrines (one Buyable subclass per perk that applies a
+persistent player buff). The user picked these effects: **faster reload**, **faster fire rate**,
+and **move-speed up**. After perks, add **Pack-a-Punch** (duplicate the held weapon's
+`WeaponData` and boost damage/mag so the shared `.tres` is never mutated).
 
 ## User Preferences / Context
 

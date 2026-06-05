@@ -17,6 +17,10 @@ Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
 - Added procedural weapon recoil/reload animations.
 - Added Throwing Axe (gravity projectile) as weapon_3 and placed it on the wall in Arena.tscn.
 - Added Ammo Refill interactable (`buyable_ammo.gd`).
+- M3 feel polish done: procedural sway/bob and firing/reload SFX + impact VFX (committed).
+- M4 started: **Mystery Box** (`scripts/interactables/mystery_box.gd`,
+  `scenes/interactables/MysteryBox.tscn`) placed in the far room behind the BuyableDoor —
+  pay 950 to roll a random weapon, then interact again to take it.
 
 Most recently verified through Godot MCP:
 
@@ -34,7 +38,7 @@ Known current issues / polish:
   and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
 - No firing/reload SFX yet.
 
-Recommended next step: finish M3 weapon feel polish with SFX and impact particles, or begin M4 (Mystery Box / Perks).
+Recommended next step: continue M4 — add Perk shrines (chosen effects: faster reload, faster fire rate, move-speed up), then Pack-a-Punch (duplicate the held `WeaponData` before boosting it so the shared `.tres` stays clean).
 
 ## What this is
 

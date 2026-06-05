@@ -2,10 +2,11 @@
 
 [ext_resource type="Script" uid="uid://bbu4rbv527cxi" path="res://scripts/systems/arena.gd" id="1_73cya"]
 [ext_resource type="PackedScene" uid="uid://cynfaeapnlwvs" path="res://scenes/player/Player.tscn" id="2_4p07w"]
-[ext_resource type="Script" path="res://scripts/interactables/buyable_door.gd" id="3_rwl2q"]
-[ext_resource type="Script" path="res://scripts/interactables/buyable_weapon.gd" id="4_507yn"]
-[ext_resource type="Script" path="res://scripts/interactables/buyable_axe.gd" id="6_axe"]
+[ext_resource type="Script" uid="uid://dpurwqyyi71e0" path="res://scripts/interactables/buyable_door.gd" id="3_rwl2q"]
+[ext_resource type="Script" uid="uid://sg5s28ssilhx" path="res://scripts/interactables/buyable_weapon.gd" id="4_507yn"]
 [ext_resource type="PackedScene" uid="uid://d3r02hvd55oxj" path="res://scenes/ui/HUD.tscn" id="5_507yn"]
+[ext_resource type="Script" uid="uid://cabatc2kymaq4" path="res://scripts/interactables/buyable_axe.gd" id="6_axe"]
+[ext_resource type="PackedScene" uid="uid://3n5e6m3t3vfx" path="res://scenes/interactables/MysteryBox.tscn" id="7_xp3bc"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_73cya"]
 geometry_parsed_geometry_type = 1
@@ -213,19 +214,22 @@ script = ExtResource("4_507yn")
 [node name="Shape" type="CollisionShape3D" parent="WallBuy" unique_id=1102363151]
 shape = SubResource("BoxShape3D_bidsv")
 
-[node name="Panel" type="MeshInstance3D" parent="WallBuy"]
+[node name="Panel" type="MeshInstance3D" parent="WallBuy" unique_id=319433303]
 material_override = SubResource("StandardMaterial3D_jg37k")
 mesh = SubResource("BoxMesh_mmujr")
 
-[node name="WallBuyAxe" type="Area3D" parent="."]
+[node name="WallBuyAxe" type="Area3D" parent="." unique_id=399025127]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.3, 1.5, 7)
 script = ExtResource("6_axe")
 
-[node name="Shape" type="CollisionShape3D" parent="WallBuyAxe"]
+[node name="Shape" type="CollisionShape3D" parent="WallBuyAxe" unique_id=44867320]
 shape = SubResource("BoxShape3D_bidsv")
 
-[node name="Panel" type="MeshInstance3D" parent="WallBuyAxe"]
+[node name="Panel" type="MeshInstance3D" parent="WallBuyAxe" unique_id=1345511301]
 material_override = SubResource("StandardMaterial3D_jg37k")
 mesh = SubResource("BoxMesh_mmujr")
 
-[node name="HUD" parent="." instance=ExtResource("5_507yn")]
+[node name="HUD" parent="." unique_id=1671130896 instance=ExtResource("5_507yn")]
+
+[node name="MysteryBox" parent="." unique_id=1459380089 instance=ExtResource("7_xp3bc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -10)

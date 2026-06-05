@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://3n5e6m3t3vfx"]
+
+[ext_resource type="Script" uid="uid://2lsbbehuywwa" path="res://scripts/interactables/mystery_box.gd" id="1_ds8p7"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_mkwgm"]
+size = Vector3(1.4, 1.2, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4k2tt"]
+albedo_color = Color(0.15, 0.11, 0.05, 1)
+metallic = 0.6
+roughness = 0.4
+emission_enabled = true
+emission = Color(0.4, 0.25, 0.05, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_6awwb"]
+size = Vector3(1.4, 1, 1)
+
+[node name="MysteryBox" type="Area3D" unique_id=1459380089]
+script = ExtResource("1_ds8p7")
+
+[node name="Shape" type="CollisionShape3D" parent="." unique_id=1572127522]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_mkwgm")
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=1656967368]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+material_override = SubResource("StandardMaterial3D_4k2tt")
+mesh = SubResource("BoxMesh_6awwb")
+
+[node name="Pivot" type="Node3D" parent="." unique_id=1592255415]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
