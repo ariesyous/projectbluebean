@@ -43,6 +43,9 @@ func _build_dungeon() -> void:
 	var floor_scene: PackedScene = load(KIT + "floor_tile_large.gltf")
 	var wall_scene: PackedScene = load(KIT + "wall.gltf")
 
+	var props := Node3D.new()
+	props.name = "DungeonProps"
+	add_child(props)   # under Arena, not the nav region, so torches don't affect nav
 	var floors := Node3D.new()
 	floors.name = "DungeonFloors"
 	nav_region.add_child(floors)
@@ -70,6 +73,7 @@ func _build_dungeon() -> void:
 		fcol.position = Vector3(wx, -0.1, wz)
 
 	var dirs := [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
+	var torch_i := 0
 	for cell in _floor_cells:
 		for dir in dirs:
 			if _floor_cells.has(cell + dir):
@@ -88,6 +92,24 @@ func _build_dungeon() -> void:
 			wall_body.add_child(wcol)
 			wcol.position = Vector3(wx, WALL_H * 0.5, wz)
 			wcol.rotation.y = yaw
+			torch_i += 1
+			if torch_i % 3 == 0:
+				_place_torch(Vector3(wx, 0.0, wz), dir, props)
+
+func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
+	var inner := Vector3(-dir.x, 0.0, -dir.y)   # toward the room interior
+	var torch: Node3D = load(KIT + "torch_mounted.gltf").instantiate()
+	props.add_child(torch)
+	torch.global_position = wall_pos + inner * 0.45 + Vector3(0.0, 2.3, 0.0)
+	torch.look_at(torch.global_position + inner, Vector3.UP)
+	var light := OmniLight3D.new()
+	light.set_script(load("res://scripts/fx/torch_flicker.gd"))
+	light.light_color = Color(1.0, 0.6, 0.25)
+	light.light_energy = 3.2
+	light.omni_range = 9.0
+	light.shadow_enabled = false
+	props.add_child(light)
+	light.global_position = wall_pos + inner * 0.6 + Vector3(0.0, 2.7, 0.0)
 
 func _collect_cells() -> void:
 	_add_room(Rect2i(-2, 4, 5, 3))     # Room A (start)

@@ -28,6 +28,12 @@ Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
 - M4 **Pack-a-Punch** (`buyable_pap.gd` on `PackAPunch.tscn`): 5000 pts upgrades the held
   weapon once via `weapon.pack_a_punch()`, which `duplicate()`s the WeaponData first so the
   shared `.tres` is never mutated. HUD tints the ammo readout violet when upgraded. **M4 done.**
+- M5 **modular dungeon** (in progress): greybox replaced by a KayKit Dungeon Remastered map
+  built procedurally in `arena.gd` (`_build_dungeon`) on a 4-unit grid — three rooms (start /
+  combat / vault) + corridors, with floor/wall collision under `NavigationRegion3D`. Buyable
+  door gates the vault. Atmosphere: wall torches (`scripts/fx/torch_flicker.gd`), dark
+  Environment, and fog. Kit lives at `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/`
+  (only `Assets/gltf` + `textures` committed; `fbx`/`obj` left untracked).
 
 Most recently verified through Godot MCP:
 
@@ -45,7 +51,7 @@ Known current issues / polish:
   and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
 - No firing/reload SFX yet.
 
-Recommended next step: M4 is complete — begin M5 (Map & atmosphere): swap the greybox for a real dungeon kit (KayKit Dungeon Remastered, CC0), spread the M4 interactables across the new rooms, and add torch lighting, fog, and ambient audio.
+Recommended next step: finish M5 polish — ambient dungeon audio, blood/impact particles, breakable barricades, and dungeon props/doorway arches (use the kit's `wall_corner`/prop pieces). Then start M6 (menus, special orc types, boss round, high score).
 
 ## What this is
 

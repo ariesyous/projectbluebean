@@ -34,6 +34,13 @@ Completed and committed so far:
   before boosting (damage ×2, mag/reserve ×1.5, fire_rate ×1.15, violet muzzle, "+" name,
   ammo refill) so the shared `.tres` is never mutated. HUD tints the ammo readout violet when
   the held weapon is upgraded. **This completes M4.**
+- Started M5: replaced the greybox with a **KayKit Dungeon Remastered** modular map. A
+  parametric builder in `arena.gd` (`_build_dungeon`/`_collect_cells`/`_place_torch`) lays floor
+  tiles + perimeter walls (with collision under `NavigationRegion3D`) from room rects on the
+  kit's 4-unit grid; walls auto-fill any cell edge with an empty neighbour, leaving corridors
+  open. Three rooms (start / combat / vault) linked by corridors; the buyable door gates the
+  vault. Added **atmosphere**: 18 wall-mounted torches with flickering lights
+  (`scripts/fx/torch_flicker.gd`), a dark dungeon Environment, and fog.
 
 Recent commits:
 
@@ -79,6 +86,11 @@ Verified most recently:
   damage 45 (duplicate confirmed). Re-purchase on an upgraded weapon is blocked (0 spent); a
   freshly equipped Staff is upgradeable independently; the ammo readout tints violet only while
   an upgraded weapon is held. Screenshot confirms the glowing-portal machine in the far room.
+- M5 dungeon: builder makes 67 floor tiles + 56 walls; player lands on the floor, walls block
+  movement, the navmesh bakes (orcs report reachable paths through corridors), and the buyable
+  door blocks the player at the vault entrance until bought, then opens. Torch-lit/fog screenshots
+  confirm the mood. The kit's redundant `fbx`/`obj` copies were left on disk (untracked) — only
+  `Assets/gltf` + `textures` are committed.
 
 Known recurring warning:
 
@@ -106,15 +118,17 @@ Known git/sandbox quirk:
 
 ## Best Next Step
 
-**M4 is complete** (Mystery Box, Perk shrines, Pack-a-Punch). Begin **M5 — Map & atmosphere**.
+M4 is complete; **M5 is underway** — the modular dungeon, multi-room layout, and torch/fog
+atmosphere are in. Remaining M5 polish: **ambient dungeon audio** (a looping `AudioStreamPlayer`),
+**blood/impact particles** on orc hits, **barricades orcs break**, and dungeon **props**
+(barrels, banners, cobwebs from the kit) + nicer doorway arches at the corridor openings.
+Consider tuning torch/ambient brightness for playability and adding `wall_corner` pieces so
+convex corners don't rely on overlapping straight walls.
 
-Recommended next task: replace the greybox arena with a real dungeon kit (KayKit Dungeon
-Remastered, CC0, already suggested) and add torch/dynamic lighting, fog, and ambient audio.
-The far room is currently crowded with all M4 interactables (box, three perk shrines, PaP) —
-spread these across the new multi-room layout as you build it. Other M5 work: barricades orcs
-break, and blood/impact particles.
+Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (ranged shaman,
+heavy brute), a boss round, downed/revive, and a persistent high-round score.
 
-Possible M4 polish if revisited: a Mystery Box that relocates, perk loss/limit, and a HUD
+Possible earlier-milestone polish: a Mystery Box that relocates, perk loss/limit, and a HUD
 weapon-name label (the upgraded "+" name is only surfaced via the violet ammo tint today).
 
 ## User Preferences / Context

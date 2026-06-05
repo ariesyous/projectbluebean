@@ -17,19 +17,16 @@
 geometry_parsed_geometry_type = 1
 agent_height = 1.6
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7a6wl"]
-sky_top_color = Color(0.38, 0.45, 0.55, 1)
-sky_horizon_color = Color(0.65, 0.67, 0.7, 1)
-ground_bottom_color = Color(0.2, 0.17, 0.13, 1)
-ground_horizon_color = Color(0.65, 0.67, 0.7, 1)
-
-[sub_resource type="Sky" id="Sky_gtbtk"]
-sky_material = SubResource("ProceduralSkyMaterial_7a6wl")
-
-[sub_resource type="Environment" id="Environment_2nt6x"]
-background_mode = 2
-sky = SubResource("Sky_gtbtk")
-ambient_light_source = 3
+[sub_resource type="Environment" id="Environment_bidsv"]
+background_mode = 1
+background_color = Color(0.015, 0.015, 0.025, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.16, 0.15, 0.2, 1)
+ambient_light_energy = 0.35
+tonemap_mode = 3
+fog_enabled = true
+fog_light_color = Color(0.06, 0.05, 0.08, 1)
+fog_density = 0.025
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_7iynj"]
 size = Vector3(4, 4, 1)
@@ -82,10 +79,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, -6)
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=132388025]
 transform = Transform3D(0.70710677, 0.579228, -0.4055798, 0, 0.57357645, 0.81915206, 0.70710677, -0.579228, 0.4055798, 0, 0, 0)
-shadow_enabled = true
+light_color = Color(0.5, 0.6, 0.85, 1)
+light_energy = 0.22
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=621995936]
-environment = SubResource("Environment_2nt6x")
+environment = SubResource("Environment_bidsv")
 
 [node name="Player" parent="." unique_id=1579285422 instance=ExtResource("2_4p07w")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 20)
