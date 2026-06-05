@@ -16,6 +16,7 @@ var _view_model: Node3D = null
 var _base_transform: Transform3D
 var _anim_tween: Tween
 var _audio_player: AudioStreamPlayer3D
+var _player: Node = null
 
 func _ready() -> void:
 	if data == null:
@@ -36,6 +37,27 @@ func _spawn_view_model() -> void:
 		_view_model = get_node_or_null("Model")
 	if _view_model != null:
 		_base_transform = _view_model.transform
+
+## Perk multipliers come from the player (set by perk shrines). Looked up
+## lazily because starting weapons are _ready before the player joins its group.
+func _get_player() -> Node:
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player")
+	return _player
+
+func _fire_rate_mult() -> float:
+	var p := _get_player()
+	if p == null:
+		return 1.0
+	var m = p.get("fire_rate_mult")
+	return float(m) if m != null else 1.0
+
+func _reload_time_mult() -> float:
+	var p := _get_player()
+	if p == null:
+		return 1.0
+	var m = p.get("reload_time_mult")
+	return float(m) if m != null else 1.0
 
 func is_automatic() -> bool:
 	return data != null and data.automatic
@@ -65,7 +87,7 @@ func try_fire() -> void:
 	else:
 		var hit_point := _do_hitscan()
 		_spawn_tracer(global_position, hit_point)
-	get_tree().create_timer(1.0 / maxf(data.fire_rate, 0.01)).timeout.connect(
+	get_tree().create_timer(1.0 / maxf(data.fire_rate * _fire_rate_mult(), 0.01)).timeout.connect(
 		func() -> void: _can_fire = true)
 
 func _spawn_projectile() -> void:
@@ -111,11 +133,12 @@ func reload() -> void:
 		return
 	_reloading = true
 	reload_changed.emit(true)
-	_play_reload_animation()
+	var rtime := data.reload_time * _reload_time_mult()
+	_play_reload_animation(rtime)
 	if data.reload_sound != null:
 		_audio_player.stream = data.reload_sound
 		_audio_player.play()
-	await get_tree().create_timer(data.reload_time).timeout
+	await get_tree().create_timer(rtime).timeout
 	var needed: int = data.mag_size - _in_mag
 	var take: int = mini(needed, _reserve)
 	_in_mag += take
@@ -145,14 +168,15 @@ func _play_fire_animation() -> void:
 		_anim_tween.chain().tween_property(_view_model, "position:z", -0.15, 0.15).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_anim_tween.parallel().tween_property(_view_model, "rotation_degrees:x", -8.0, 0.15).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
-func _play_reload_animation() -> void:
+func _play_reload_animation(r_time: float = -1.0) -> void:
 	if _view_model != null:
 		if _anim_tween != null and _anim_tween.is_valid():
 			_anim_tween.kill()
 		_view_model.transform = _base_transform
 
+		if r_time < 0.0:
+			r_time = data.reload_time
 		_anim_tween = create_tween()
-		var r_time := data.reload_time
 		_anim_tween.tween_property(_view_model, "rotation_degrees:x", 45.0, r_time * 0.3).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_anim_tween.tween_interval(r_time * 0.4)
 		_anim_tween.tween_property(_view_model, "rotation_degrees:x", -45.0, r_time * 0.3).as_relative().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

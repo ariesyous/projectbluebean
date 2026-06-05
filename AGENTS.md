@@ -25,6 +25,10 @@ Completed and committed so far:
 - Added procedural weapon sway/bob and firing/reload SFX + impact VFX (M3 feel polish).
 - Started M4: added the **Mystery Box** (`scripts/interactables/mystery_box.gd` +
   `scenes/interactables/MysteryBox.tscn`), placed in the far room behind the BuyableDoor.
+- Added M4 **Perk shrines** (`buyable_perk.gd` base + `perk_reload`/`perk_firerate`/`perk_speed`
+  subclasses on a shared `scenes/interactables/PerkShrine.tscn`): Stamina (move speed ×1.35),
+  Quick Hands (reload ×0.5), Frenzy (fire rate ×1.5). Player tracks perks + `fire_rate_mult`/
+  `reload_time_mult`; `weapon.gd` reads them so future weapons benefit. HUD shows owned perks.
 
 Recent commits:
 
@@ -59,6 +63,12 @@ Verified most recently:
   and presenting it again grants the weapon (refills an owned one or adds a new slot and
   switches to it). Box resets to IDLE after a grab; the present timeout dismisses the weapon
   with no refund. Verified via `game_eval` and a `game` screenshot of the chest + floating prop.
+- Perk shrines: each costs 1500, one-time per run. Buying all three spent 4500 and set
+  move_speed 5.5->7.425, fire_rate_mult 1.5, reload_time_mult 0.5; `weapon._fire_rate_mult()`/
+  `_reload_time_mult()` read those values (Crossbow effective fire rate 2.5->3.75). Re-purchase
+  is blocked (empty prompt, no double-apply); the consumed shrine dims its glow; HUD shows
+  "Perks: Stamina, Quick Hands, Frenzy"; perks reset on scene reload. Screenshot confirms the
+  three colour-tinted shrines (blue/amber/green) in the far room.
 
 Known recurring warning:
 
@@ -86,12 +96,12 @@ Known git/sandbox quirk:
 
 ## Best Next Step
 
-M3 polish and the M4 Mystery Box are in. Continue M4 with **Perk shrines**.
+M3 polish, the M4 Mystery Box, and the M4 Perk shrines are in. Finish M4 with **Pack-a-Punch**.
 
-Recommended next task: add perk shrines (one Buyable subclass per perk that applies a
-persistent player buff). The user picked these effects: **faster reload**, **faster fire rate**,
-and **move-speed up**. After perks, add **Pack-a-Punch** (duplicate the held weapon's
-`WeaponData` and boost damage/mag so the shared `.tres` is never mutated).
+Recommended next task: add a Pack-a-Punch shrine that upgrades the held weapon. **Duplicate**
+the held weapon's `WeaponData` (`weapon.data = weapon.data.duplicate()`) before boosting
+damage/mag/fire_rate so the shared `.tres` (loaded/cached) is never mutated. Mark upgraded
+weapons (e.g. recolor `muzzle_color`, tweak `display_name`) and reflect it on the HUD.
 
 ## User Preferences / Context
 

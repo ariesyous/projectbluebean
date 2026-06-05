@@ -21,6 +21,10 @@ Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
 - M4 started: **Mystery Box** (`scripts/interactables/mystery_box.gd`,
   `scenes/interactables/MysteryBox.tscn`) placed in the far room behind the BuyableDoor —
   pay 950 to roll a random weapon, then interact again to take it.
+- M4 **Perk shrines** (`buyable_perk.gd` + `perk_reload`/`perk_firerate`/`perk_speed` on a
+  shared `PerkShrine.tscn`) in the far room: Stamina (move speed), Quick Hands (reload),
+  Frenzy (fire rate). Player holds `fire_rate_mult`/`reload_time_mult`/`_perks`; `weapon.gd`
+  reads the mults; HUD `PerksLabel` lists owned perks.
 
 Most recently verified through Godot MCP:
 
@@ -38,7 +42,7 @@ Known current issues / polish:
   and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
 - No firing/reload SFX yet.
 
-Recommended next step: continue M4 — add Perk shrines (chosen effects: faster reload, faster fire rate, move-speed up), then Pack-a-Punch (duplicate the held `WeaponData` before boosting it so the shared `.tres` stays clean).
+Recommended next step: finish M4 with Pack-a-Punch — duplicate the held `WeaponData` (`weapon.data = weapon.data.duplicate()`) before boosting damage/mag/fire_rate so the shared `.tres` stays clean, then mark the upgraded weapon on the HUD.
 
 ## What this is
 

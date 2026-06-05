@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://dwtsnhh22g5wk"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ql857"]
+size = Vector3(1.2, 2.2, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rx1yk"]
+albedo_color = Color(0.22, 0.2, 0.18, 1)
+roughness = 0.8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_f0t7x"]
+top_radius = 0.4
+height = 1.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_846ui"]
+radius = 0.22
+height = 0.44
+
+[node name="PerkShrine" type="Area3D" unique_id=1855990172]
+
+[node name="Shape" type="CollisionShape3D" parent="." unique_id=228797633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+shape = SubResource("BoxShape3D_ql857")
+
+[node name="Pedestal" type="MeshInstance3D" parent="." unique_id=1395536502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+material_override = SubResource("StandardMaterial3D_rx1yk")
+mesh = SubResource("CylinderMesh_f0t7x")
+
+[node name="Crystal" type="MeshInstance3D" parent="." unique_id=2119925097]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+mesh = SubResource("SphereMesh_846ui")
+
+[node name="Glow" type="OmniLight3D" parent="." unique_id=99467838]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+light_energy = 2.0

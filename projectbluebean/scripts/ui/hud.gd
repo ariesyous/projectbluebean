@@ -9,6 +9,7 @@ extends CanvasLayer
 @onready var ammo_label: Label = $Root/AmmoLabel
 @onready var hit_marker: Label = $Root/HitMarker
 @onready var prompt_label: Label = $Root/PromptLabel
+@onready var perks_label: Label = $Root/PerksLabel
 @onready var game_over: Control = $Root/GameOver
 @onready var restart_button: Button = $Root/GameOver/RestartButton
 
@@ -36,7 +37,9 @@ func _ready() -> void:
 		_player.health_changed.connect(_on_health_changed)
 		_player.weapon_changed.connect(_on_weapon_changed)
 		_player.interact_target_changed.connect(_on_interact_target_changed)
+		_player.perks_changed.connect(_on_perks_changed)
 		_on_weapon_changed(_player.get("_current_weapon"))
+		_on_perks_changed([])
 	_on_points_changed(Economy.points)
 	_on_round_changed(GameState.current_round)
 	_on_round_status_changed(
@@ -111,6 +114,17 @@ func _on_reload_changed(is_reloading: bool) -> void:
 func _on_hit_confirmed() -> void:
 	_hit_marker_time = HIT_MARKER_DURATION
 	hit_marker.visible = true
+
+const PERK_NAMES := {"stamina": "Stamina", "speed_cola": "Quick Hands", "double_tap": "Frenzy"}
+
+func _on_perks_changed(perk_ids: Array) -> void:
+	if perk_ids.is_empty():
+		perks_label.text = ""
+		return
+	var parts := []
+	for id in perk_ids:
+		parts.append(PERK_NAMES.get(id, id))
+	perks_label.text = "Perks: " + ", ".join(parts)
 
 func _on_interact_target_changed(target) -> void:
 	_target = target

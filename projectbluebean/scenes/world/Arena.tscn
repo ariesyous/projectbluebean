@@ -7,6 +7,10 @@
 [ext_resource type="PackedScene" uid="uid://d3r02hvd55oxj" path="res://scenes/ui/HUD.tscn" id="5_507yn"]
 [ext_resource type="Script" uid="uid://cabatc2kymaq4" path="res://scripts/interactables/buyable_axe.gd" id="6_axe"]
 [ext_resource type="PackedScene" uid="uid://3n5e6m3t3vfx" path="res://scenes/interactables/MysteryBox.tscn" id="7_xp3bc"]
+[ext_resource type="PackedScene" uid="uid://dwtsnhh22g5wk" path="res://scenes/interactables/PerkShrine.tscn" id="8_gc5g1"]
+[ext_resource type="Script" uid="uid://xv1uxcdcihgv" path="res://scripts/interactables/perk_reload.gd" id="9_bidsv"]
+[ext_resource type="Script" uid="uid://c0xlwxvd5ch34" path="res://scripts/interactables/perk_firerate.gd" id="10_jg37k"]
+[ext_resource type="Script" uid="uid://cc7178yq4kryr" path="res://scripts/interactables/perk_speed.gd" id="11_1bpc6"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_73cya"]
 geometry_parsed_geometry_type = 1
@@ -233,3 +237,15 @@ mesh = SubResource("BoxMesh_mmujr")
 
 [node name="MysteryBox" parent="." unique_id=1459380089 instance=ExtResource("7_xp3bc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -10)
+
+[node name="PerkReload" parent="." unique_id=1855990172 instance=ExtResource("8_gc5g1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -16)
+script = ExtResource("9_bidsv")
+
+[node name="PerkFireRate" parent="." unique_id=74407993 instance=ExtResource("8_gc5g1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18)
+script = ExtResource("10_jg37k")
+
+[node name="PerkSpeed" parent="." unique_id=558338904 instance=ExtResource("8_gc5g1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -16)
+script = ExtResource("11_1bpc6")

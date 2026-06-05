@@ -18,9 +18,14 @@ extends CharacterBody3D
 @export var bob_frequency: float = 2.4
 @export var bob_amplitude: float = 0.06
 
+const STAMINA_SPEED_MULT := 1.35       ## Stamin-Up: faster movement
+const SPEED_COLA_RELOAD_MULT := 0.5    ## Speed Cola: reload_time multiplier (<1 = faster)
+const DOUBLE_TAP_FIRE_MULT := 1.5      ## Double Tap: fire_rate multiplier (>1 = faster)
+
 signal health_changed(current: float, maximum: float)
 signal weapon_changed(weapon: Node)
 signal interact_target_changed(target)  ## the interactable Node, or null
+signal perks_changed(perk_ids: Array)   ## owned perk ids, for the HUD
 
 var health: float
 var _time_since_damage: float = 999.0
@@ -32,6 +37,11 @@ var _current_interactable = null
 var _melee_timer: float = 0.0
 var _mouse_input: Vector2 = Vector2.ZERO
 var _bob_time: float = 0.0
+
+## Perk modifiers (1.0 = no perk). Weapons read these so future weapons benefit too.
+var fire_rate_mult: float = 1.0
+var reload_time_mult: float = 1.0
+var _perks: Dictionary = {}
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -266,6 +276,24 @@ func equip_weapon(weapon_scene: PackedScene) -> void:
 	var slot := _add_or_refill_weapon(weapon_scene)
 	if slot != -1:
 		_switch_weapon_slot(slot)
+
+## Perks (fantasy reskin of the Zombies perk-a-colas). One-time per shrine;
+## they reset naturally on scene reload since the player is rebuilt.
+func has_perk(perk_id: String) -> bool:
+	return _perks.has(perk_id)
+
+func grant_perk(perk_id: String) -> void:
+	if _perks.has(perk_id):
+		return
+	_perks[perk_id] = true
+	match perk_id:
+		"stamina":
+			move_speed *= STAMINA_SPEED_MULT
+		"speed_cola":
+			reload_time_mult = SPEED_COLA_RELOAD_MULT
+		"double_tap":
+			fire_rate_mult = DOUBLE_TAP_FIRE_MULT
+	perks_changed.emit(_perks.keys())
 
 func _on_player_died() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
