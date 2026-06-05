@@ -146,6 +146,11 @@ convex corners don't rely on overlapping straight walls.
 Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (ranged shaman,
 heavy brute), a boss round, downed/revive, and a persistent high-round score.
 
+M5 map-design backlog: redesign/expand the dungeon into a player-traversable loop before final
+map lock. The current linear start/combat/vault chain works, but higher rounds need a circular
+route where the player can kite and recover while orcs pressure from behind and ahead. Preserve
+clear sightlines, readable door gates, spawn fairness, and navmesh reliability when adding this.
+
 Possible earlier-milestone polish: a Mystery Box that relocates, perk loss/limit, and a HUD
 weapon-name label (the upgraded "+" name is only surfaced via the violet ammo tint today).
 

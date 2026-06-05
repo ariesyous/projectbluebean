@@ -51,6 +51,9 @@ Known current issues / polish:
 - The dungeon has no ceiling — a dark flat background shows above the 4-tall walls (reads as a
   dark void; fine for mood, add a ceiling/raise walls if undesired).
 - Convex corners use overlapping straight walls (kit has `wall_corner` pieces to use instead).
+- Map flow is still too linear for harder rounds. Backlog a proper traversal loop so the player
+  can kite through a circular route as pressure ramps, with fair spawns, clear door gates, and
+  reliable orc nav through the full path.
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
