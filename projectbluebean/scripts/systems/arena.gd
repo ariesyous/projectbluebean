@@ -27,6 +27,7 @@ var _remaining_to_spawn: int = 0
 var _between_round_left: float = 0.0
 var _round_active: bool = false
 var _floor_cells: Dictionary = {}
+var _prop_collision: StaticBody3D = null
 
 func _ready() -> void:
 	randomize()
@@ -61,6 +62,10 @@ func _build_dungeon() -> void:
 	var wall_body := StaticBody3D.new()
 	wall_body.name = "WallCollision"
 	nav_region.add_child(wall_body)
+	var prop_body := StaticBody3D.new()
+	prop_body.name = "PropCollision"
+	nav_region.add_child(prop_body)
+	_prop_collision = prop_body
 
 	for cell in _floor_cells:
 		var wx: float = cell.x * TILE
@@ -194,6 +199,7 @@ func _decorate_buyable_door() -> void:
 		push_warning("Missing wall_doorway.gltf")
 		return
 	var model: Node3D = scene.instantiate()
+	model.name = "DoorModel"
 	barrier.add_child(model)
 	# BuyableDoor sits at y=2; the door model's origin is at its base, so drop it
 	# 2 units to stand on the floor. Default yaw spans x and blocks the z corridor.
@@ -220,13 +226,17 @@ func _place_dungeon_props(props: Node3D) -> void:
 	_place_prop("barrel_small_stack.gltf", Vector3(14.0, 0.0, 5.7), deg_to_rad(-30.0), props)
 	_place_prop("pillar_decorated.gltf", Vector3(-14.0, 0.0, 6.0), 0.0, props)
 	_place_prop("pillar_decorated.gltf", Vector3(14.0, 0.0, -6.0), PI, props)
+	# Barrels relocated here from the narrow vault arms (which they choked); the
+	# combat room is wide enough that their carved colliders don't sever paths.
+	_place_prop("barrel_large.gltf", Vector3(13.0, 0.0, 5.0), deg_to_rad(12.0), props)
+	_place_prop("barrel_small.gltf", Vector3(-13.0, 0.0, 5.0), deg_to_rad(-8.0), props)
 	_place_wall_prop("banner_patternA_red.gltf", Vector3(-18.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
 	_place_wall_prop("banner_patternA_green.gltf", Vector3(18.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
 
-	# Vault loop: keep the middle open so players can run the ring cleanly.
-	_place_prop("table_long_decorated_A.gltf", Vector3(0.0, 0.0, -34.2), PI, props)
-	_place_prop("barrel_large.gltf", Vector3(-16.0, 0.0, -28.0), deg_to_rad(12.0), props)
-	_place_prop("barrel_small.gltf", Vector3(16.0, 0.0, -28.0), deg_to_rad(-8.0), props)
+	# Vault: keep the ring and arms clear so the navmesh stays connected and kiting
+	# is clean. Only a table tucked against the back-nub wall, clear of the Pack-a-
+	# Punch approach (x=0) and the nub's loop connections (x=-4/0/4 at the north edge).
+	_place_prop("table_long_decorated_A.gltf", Vector3(-4.0, 0.0, -37.2), 0.0, props)
 	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -38.0), Vector2i(0, -1), props, 2.25)
 
 func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) -> void:
@@ -240,6 +250,39 @@ func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) ->
 	props.add_child(prop)
 	prop.position = position
 	prop.rotation.y = yaw
+	_add_prop_collider(prop, position, yaw)
+
+## Give a floor prop a box collider sized to its mesh AABB, parented under the nav
+## region so the bake carves around it and the player/orcs can't walk through it.
+func _add_prop_collider(prop: Node3D, world_pos: Vector3, yaw: float) -> void:
+	if _prop_collision == null:
+		return
+	var local := AABB()
+	var first := true
+	var stack: Array = [prop]
+	while not stack.is_empty():
+		var n = stack.pop_back()
+		for c in n.get_children():
+			stack.push_back(c)
+		var mi := n as MeshInstance3D
+		if mi != null and mi.mesh != null:
+			var t: Transform3D = prop.global_transform.affine_inverse() * mi.global_transform
+			var a: AABB = t * mi.mesh.get_aabb()
+			if first:
+				local = a
+				first = false
+			else:
+				local = local.merge(a)
+	if first:
+		return
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(maxf(local.size.x, 0.2), maxf(local.size.y, 0.2), maxf(local.size.z, 0.2))
+	col.shape = shape
+	_prop_collision.add_child(col)
+	var center := local.position + local.size * 0.5
+	col.position = world_pos + Basis(Vector3.UP, yaw) * center
+	col.rotation.y = yaw
 
 func _place_wall_prop(model: String, wall_pos: Vector3, dir: Vector2i, props: Node3D, height: float) -> void:
 	var inner := Vector3(-dir.x, 0.0, -dir.y)

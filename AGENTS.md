@@ -57,6 +57,19 @@ Completed and committed so far:
     the whole `BuyableDoor` still frees on purchase.
   - `_tune_environment()` raises ambient 0.35→0.85 and thins fog (the sealed ceiling darkened the
     box); `_place_torch` torches went 3.2→4.2 energy / 9→12 range. Warm, moody, readable.
+- **M6 map fixes & quick feel wins** (verified via `game_eval`, navmesh paths re-checked):
+  - `_add_prop_collider()` gives every floor prop a box collider sized to its mesh AABB, parented
+    under `NavigationRegion3D` so the bake **carves around it** (player + orcs are blocked but orcs
+    still route around, no trapping). **Lesson:** carving a prop in a 4-wide corridor disconnects
+    the navmesh — the two vault-arm barrels had to move to the wide combat room; keep narrow
+    corridors/arms prop-free.
+  - Fixed the perk-shrine-in-table overlap: `table_long_decorated_A` moved out of the `PerkSpeed`
+    shrine to the vault back-nub wall at `(-4,0,-37.2)`, clear of the PaP approach.
+  - Orcs shrunk ~18% in `Orc.tscn` (model ×0.82, capsule radius 0.95→0.78 / height 3.0→2.46,
+    re-centered) — less towering, easier to slip past.
+  - Buyable door now swings open on a left-edge hinge pivot with an `impact.wav` thunk before
+    freeing (`buyable_door.gd`); collider frees instantly so the path opens at once. `arena.gd`
+    names the door model `DoorModel` for the swing to grab.
 - Added a single-threaded Godot Web export for GitHub Pages. The export preset lives at
   `projectbluebean/export_presets.cfg`; generated Pages artifacts live in repo-root `docs/`.
   GitHub Pages is enabled for `ariesyous/projectbluebean` from `main` / `/docs` and serves
@@ -187,10 +200,10 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 M5 (modular dungeon + atmosphere + map/feel polish) is **done and user-approved**. The roadmap
 below is reorganized around **playtest feedback from 2026-06-05** (verbatim notes at the end). Work
-it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. Suggested
-order is M6 → M11; confirm scope with the user before starting each.
+it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. **M6 is
+done** (see Completed list); next up is **M7 → M11**; confirm scope with the user before each.
 
-### M6 — Map fixes & quick feel wins (small; do first)
+### M6 — Map fixes & quick feel wins (DONE)
 - **Prop collision.** Hallway props (barrels, tables, crates, pillars) are placed by
   `_place_prop` / `_place_wall_prop` in `arena.gd` with **no colliders**, so the player *and*
   orcs clip straight through them. Add collision (a `StaticBody3D` + convex/box shape per prop)

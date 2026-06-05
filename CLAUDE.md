@@ -61,18 +61,15 @@ Known current issues / polish:
 
 - Existing navmesh warning persists (benign): `Property agent_height is ceiled to cell_height
   voxel units and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
-- **Props have no collision** — player and orcs clip through hallway barrels/tables/crates, and a
-  perk shrine (`PerkSpeed` at `(0,0,-34)`) sits inside `table_long_decorated_A` at `(0,0,-34.2)`.
-  First M6 fix.
-- Orcs tower over the player and stick on corners; the door opens with no animation; Staff/Axe
+- Orcs stick on corners; Staff/Axe
   wall-buys are placeholder blue boxes; the Axe holds/throws unnaturally and is underpowered vs the
-  Fire Staff. All captured in the AGENTS.md M6–M10 roadmap.
+  Fire Staff. All captured in the AGENTS.md M7–M11 roadmap.
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
-Recommended next step: **M6 — Map fixes & quick feel wins** (prop collision, move the
-shrine/table, shrink orcs ~15–20%, door-open animation). Then M7 sprint/stamina and M8 Zombies-style
-breakable+repairable barricades. Full prioritized backlog (M6 → M11) with file pointers is in
+**M6 is done** (prop collision via navmesh-carving, shrine/table fix, ~18% smaller orcs, door swing
++ thunk). Recommended next step: **M7 — Sprint/stamina** (Shift), then **M8 — Zombies-style
+breakable + repairable barricades**. Full prioritized backlog (M7 → M11) with file pointers is in
 `AGENTS.md`.
 
 ## What this is

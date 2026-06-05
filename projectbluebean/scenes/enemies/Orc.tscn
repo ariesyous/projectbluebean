@@ -4,18 +4,18 @@
 [ext_resource type="PackedScene" uid="uid://e04gy4e2lhew" path="res://assets/enemies/Goblin_Male.gltf" id="2_8quh0"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8quh0"]
-radius = 0.95
-height = 3.0
+radius = 0.78
+height = 2.46
 
 [node name="Orc" type="CharacterBody3D" unique_id=1229924264]
 collision_layer = 4
 script = ExtResource("1_aejf4")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1781265157]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.23, 0)
 shape = SubResource("CapsuleShape3D_8quh0")
 
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=163639670]
 
 [node name="GoblinModel" parent="." unique_id=1101976436 instance=ExtResource("2_8quh0")]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)
+transform = Transform3D(-0.82, 0, -7.1686682e-08, 0, 0.82, 0, 7.1686682e-08, 0, -0.82, 0, 0, 0)
