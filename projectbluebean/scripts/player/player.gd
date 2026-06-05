@@ -224,6 +224,11 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, speed)
 	move_and_slide()
 
+	_handle_weapon_input()
+	_update_interaction()
+	_update_health_regen(delta)
+	_update_weapon_visuals(delta)
+
 ## Returns the move speed for this frame (boosted while sprinting) and advances
 ## the stamina meter. Sprinting drains it; emptying it sets _exhausted until it
 ## fully recovers, so you get a forced rest after over-sprinting.
@@ -243,11 +248,6 @@ func _update_stamina(delta: float, moving: bool) -> float:
 			_exhausted = false
 		stamina_changed.emit(stamina, max_stamina, _exhausted)
 	return move_speed
-
-	_handle_weapon_input()
-	_update_interaction()
-	_update_health_regen(delta)
-	_update_weapon_visuals(delta)
 
 func _update_weapon_visuals(delta: float) -> void:
 	if weapon_holder == null:
