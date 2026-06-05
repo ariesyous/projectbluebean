@@ -1,10 +1,10 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bxtfsgvubd0cv"]
 
-[ext_resource type="Script" path="res://scripts/weapons/axe.gd" id="1_axe"]
-[ext_resource type="PackedScene" path="res://assets/weapons/kaykit/axe_1handed.gltf" id="2_axe"]
+[ext_resource type="Script" uid="uid://c4cmdxuya071h" path="res://scripts/weapons/axe.gd" id="1_axe"]
+[ext_resource type="PackedScene" uid="uid://cmwjdnao6x2ib" path="res://assets/weapons/kaykit/axe_1handed.gltf" id="2_axe"]
 
-[node name="Axe" type="Node3D"]
+[node name="Axe" type="Node3D" unique_id=595259601]
 script = ExtResource("1_axe")
 
-[node name="Model" parent="." instance=ExtResource("2_axe")]
-transform = Transform3D(0.3, 0, 0, 0, 0, -0.3, 0, 0.3, 0, 0, -0.05, -0.15)
+[node name="Model" parent="." unique_id=1874333613 instance=ExtResource("2_axe")]
+transform = Transform3D(0.30945778, 0.1129609, 0.084117346, -0.116585255, 0.31938672, 0, -0.07901754, -0.028843654, 0.32943022, 0.1, -0.22, -0.34)

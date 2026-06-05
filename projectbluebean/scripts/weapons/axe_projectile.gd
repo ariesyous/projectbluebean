@@ -4,7 +4,8 @@ var damage: float = 65.0
 var _velocity: Vector3 = Vector3.ZERO
 var _distance_travelled: float = 0.0
 var max_range: float = 100.0
-var gravity: float = 18.0
+var gravity: float = 20.0
+var spin_rate: float = 16.0
 
 @onready var model: Node3D = $Model
 
@@ -12,6 +13,10 @@ func setup(direction: Vector3, shot_damage: float, shot_range: float, shot_speed
 	_velocity = direction.normalized() * shot_speed
 	damage = shot_damage
 	max_range = shot_range
+
+func _ready() -> void:
+	if model != null:
+		model.rotation = Vector3(deg_to_rad(90.0), 0.0, deg_to_rad(-18.0))
 
 func _physics_process(delta: float) -> void:
 	if _velocity == Vector3.ZERO:
@@ -36,7 +41,7 @@ func _physics_process(delta: float) -> void:
 		global_position = to
 		_distance_travelled += step_dist
 		if model != null:
-			model.rotate_x(18.0 * delta)
+			model.rotate_object_local(Vector3.RIGHT, spin_rate * delta)
 		return
 
 	var point: Vector3 = hit.get("position", to)

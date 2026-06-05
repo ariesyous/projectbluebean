@@ -5,18 +5,22 @@ class_name Orc
 
 const PUNCH_LEN := 0.75
 const DEATH_LEN := 2.0
+const BARRICADE_COLLISION_LAYER := 16
 
 @export var max_health: float = 100.0
 @export var move_speed: float = 3.2
 @export var attack_damage: float = 15.0
 @export var attack_range: float = 1.9
 @export var attack_cooldown: float = 1.2
+@export var barricade_attack_range: float = 1.65
+@export var barricade_attack_cooldown: float = 1.45
 @export var point_reward: int = 60
 @export var blood_color: Color = Color(0.42, 0.025, 0.015, 1.0)
 
 var health: float
 var _attack_timer: float = 0.0
 var _player: Node3D = null
+var _barricade_target: Node = null
 var _dead: bool = false
 var _current_anim: String = ""
 
@@ -26,6 +30,7 @@ var _current_anim: String = ""
 
 func _ready() -> void:
 	add_to_group("orc")
+	collision_mask |= BARRICADE_COLLISION_LAYER
 	health = max_health
 	nav_agent.path_desired_distance = 0.5
 	nav_agent.target_desired_distance = attack_range * 0.75
@@ -38,6 +43,9 @@ func _ready() -> void:
 
 func _acquire_player() -> void:
 	_player = get_tree().get_first_node_in_group("player")
+
+func assign_barricade(barricade: Node) -> void:
+	_barricade_target = barricade
 
 ## Switch looping/idle animation, ignoring repeat calls for the same clip.
 func _play(anim: String) -> void:
@@ -67,6 +75,12 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
+	if _barricade_target != null and is_instance_valid(_barricade_target):
+		if _barricade_target.has_method("is_broken") and not _barricade_target.is_broken():
+			_update_barricade_attack()
+			return
+		_barricade_target = null
+
 	nav_agent.target_position = _player.global_position
 	var dist := global_position.distance_to(_player.global_position)
 	if dist <= attack_range:
@@ -88,6 +102,38 @@ func _physics_process(delta: float) -> void:
 		_play("Run")
 
 	move_and_slide()
+
+func _update_barricade_attack() -> void:
+	var target_pos := global_position
+	if _barricade_target.has_method("get_orc_attack_position"):
+		target_pos = _barricade_target.get_orc_attack_position()
+	nav_agent.target_position = target_pos
+	var dist := global_position.distance_to(target_pos)
+	if dist <= barricade_attack_range:
+		velocity.x = move_toward(velocity.x, 0.0, move_speed)
+		velocity.z = move_toward(velocity.z, 0.0, move_speed)
+		_face_toward(_barricade_target.global_position)
+		if _attack_timer <= 0.0:
+			_attack_barricade()
+		elif _attack_timer < barricade_attack_cooldown - PUNCH_LEN:
+			_play("Idle")
+	else:
+		var next_point := nav_agent.get_next_path_position()
+		var dir := next_point - global_position
+		dir.y = 0.0
+		dir = dir.normalized()
+		velocity.x = dir.x * move_speed
+		velocity.z = dir.z * move_speed
+		_face_toward(next_point)
+		_play("Run")
+	move_and_slide()
+
+func _attack_barricade() -> void:
+	_attack_timer = barricade_attack_cooldown
+	_play_oneshot("Punch")
+	if _barricade_target != null and is_instance_valid(_barricade_target) \
+			and _barricade_target.has_method("damage_from_orc"):
+		_barricade_target.damage_from_orc(self)
 
 func _face_toward(target: Vector3) -> void:
 	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)

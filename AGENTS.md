@@ -8,6 +8,66 @@ This repo is a Godot 4.6.3 first-person, round-based fantasy survival shooter. T
 
 The game is playable through the main scene, `res://scenes/world/Arena.tscn`.
 
+## Uncommitted work since `22e2898`
+
+The current worktree contains the latest playable changes from this thread. **These are verified but
+not committed yet**:
+
+- **M8 barricades / entry points are done and user-approved.**
+  - Added `scripts/interactables/barricade.gd` (+ `.uid`), created dynamically from
+    `arena.gd`.
+  - `arena.gd` now adds three one-cell enemy entry alcoves and three barricades:
+    `StartWindow`, `EastBreach`, `WestBreach`.
+  - Round spawning now prefers these entry points. Spawned orcs get assigned to a barricade while
+    it is still boarded.
+  - `orc.gd` has barricade attack behavior: stop at the boards, face the barricade, restart the
+    existing `Punch` animation, and remove one board per hit.
+  - Barricades have 5 boards. Orc hits remove one board. Player repair restores one board and
+    awards `+10` points.
+  - Repair is **hold-F**, not tap: `player.gd` now supports hold-capable interactables via
+    `uses_hold_interact()` / `hold_interact(player, delta)` / `cancel_hold_interact()`.
+  - `hud.gd` creates a small runtime `RepairProgress` label under the prompt and shows progress
+    with `○` / `◔` / `◑` / `◕` / `●` while each plank repairs.
+  - Barricade collision uses layer `16` for the normal board blocker. Player and orcs collide with
+    it, but weapon rays ignore it, so the player can shoot orcs through boarded windows.
+  - Added a player-only spawn threshold blocker on layer `32` at each entry. Player collision mask
+    includes layer `32`; orcs do not. When boards are broken, orcs can enter but the player cannot
+    walk into the spawn alcove and trap themselves.
+  - Each barricade also instantiates `wall_archedwindow_gated.gltf` as an `EnemyEntryFrame` visual
+    so the hole reads as a monster entry/window, not a normal doorway. Its imported collisions are
+    disabled in script; gameplay collision comes from the explicit blockers.
+- **M9 axe rework slice is done and verified.**
+  - `resources/weapons/axe.tres`: damage `65 -> 160`, fire rate `1.5 -> 0.65`, reserve
+    `10 -> 9` (total capacity = 10 including loaded axe), reload `0.8 -> 2.25`, projectile speed
+    `22 -> 24`.
+  - `scenes/weapons/Axe.tscn`: first-person KayKit axe is no longer flat; it is held more upright
+    and angled lower/right in the view.
+  - `scripts/weapons/axe.gd`: overrides `_spawn_projectile()` to launch from a right-hand offset
+    with a slight upward overhand bias, without changing Fire Staff projectiles.
+  - `scripts/weapons/axe_projectile.gd`: gravity raised to `20`, spin uses local
+    `rotate_object_local(Vector3.RIGHT, spin_rate * delta)`, and the projectile model is posed in
+    `_ready()`.
+- **Important typo fixed:** a stray `ipp` accidentally prefixed the `var hold_target: bool = ...`
+  line in `player.gd`, causing `Unexpected identifier "ipp" in class body` on Play. It has been
+  removed and the game launched successfully afterward.
+
+Current modified tracked files:
+
+- `projectbluebean/scripts/interactables/barricade.gd` (new, untracked)
+- `projectbluebean/scripts/interactables/barricade.gd.uid` (new, untracked)
+- `projectbluebean/scripts/systems/arena.gd`
+- `projectbluebean/scripts/enemies/orc.gd`
+- `projectbluebean/scripts/player/player.gd`
+- `projectbluebean/scripts/ui/hud.gd`
+- `projectbluebean/resources/weapons/axe.tres`
+- `projectbluebean/scenes/weapons/Axe.tscn`
+- `projectbluebean/scripts/weapons/axe.gd`
+- `projectbluebean/scripts/weapons/axe_projectile.gd`
+
+Still-untracked KayKit extras remain on disk from earlier (`Assets/fbx*`, `Assets/obj`, `Samples`,
+URLs, `contents.png*`) plus `projectbluebean/scenes/world/_scratch_measure.tscn`. These were not
+created by the latest work and should not be accidentally committed unless intentionally cleaned up.
+
 Completed and committed so far:
 
 - Core loop, economy, interactables, wall-buy Staff, buyable door, player health, and HUD.
@@ -146,6 +206,27 @@ Verified most recently:
   `BuyableDoor/Barrier`) and the combat→Pack-a-Punch path is still 22 points — and the scene runs
   at 144 FPS with 36 omni lights. User playtested and approved the look.
 
+- M8 barricades:
+  - Game launched successfully after the `ipp` typo fix in `player.gd`.
+  - Three barricades spawn and are in group `barricade`.
+  - Orcs assigned to intact barricades path to the board face and use `Punch` to damage them.
+  - Barricade damage reduces board count one at a time.
+  - Hold-repair: partial hold does not add a board; after enough held time, one board appears and
+    `Economy.points` increases by `10`.
+  - Runtime layer check: each barricade has board blocker layer `16`, player-only blocker layer
+    `32`, and `EnemyEntryFrame` visual present. Player collision mask was `49`
+    (`world + layer 16 + layer 32`); spawned orc mask was `17` (`world + layer 16`), so orcs can
+    enter but the player cannot step into spawn alcoves.
+  - When boards are broken (`_intact_boards = 0`), normal board blocker disables but the
+    player-only blocker remains enabled.
+  - Shooting-through-board behavior was verified by collision masks: weapon hitscan still uses mask
+    `1 | 4` (world + enemies), so it ignores layer `16`/`32` barricade blockers.
+- M9 axe rework:
+  - `axe.tres` loads as damage `160`, fire rate `0.65`, mag `1`, reserve `9`, reload `2.25`,
+    projectile speed `24`.
+  - Instantiated `Axe.tscn` reports ammo `1 / 9`; model transform is upright/angled instead of flat.
+  - Direct `AxeProjectile` hit test against a 100-health orc set health to `-60` and `_dead = true`.
+
 - Web export: installed Godot 4.6.3 export templates locally, exported with `variant/thread_support=false`
   using the no-threads Web template, and pushed to GitHub Pages. Live checks returned `200` for
   HTML and `index.wasm` (`application/wasm`); live `index.pck` after the dependency fix is
@@ -160,6 +241,10 @@ Known recurring warning:
 - `Property agent_height is ceiled to cell_height voxel units and loses precision`
   from `scripts/systems/arena.gd:_bake_navigation`. This existed before the latest work and is
   not currently blocking gameplay.
+- Editor logs may still echo the old fixed parse error
+  `Unexpected identifier "ipp" in class body` for `player.gd:321` even after clearing logs. The
+  actual stray `ipp` has been removed. Trust a fresh successful `project_run`, `game_capture_ready:
+  true`, and live `game_eval` over that stale editor buffer if it appears again.
 
 Known git/sandbox quirk:
 
@@ -222,6 +307,12 @@ Known git/sandbox quirk:
   in `scripts/interactables/buyable_door.gd`.
 - M7 sprint/stamina: `player.gd` (`_update_stamina`, `stamina_changed` signal, `@export` tunables) +
   `hud.gd` `StaminaBar` + `HUD.tscn`; `sprint` input action (Shift) is in `project.godot`.
+- M8 barricades: `scripts/interactables/barricade.gd`, `arena.gd` (`_add_barricade_alcoves`,
+  `_create_barricade_entries`, `_add_barricade_entry`, `_spawn_orc` entry assignment),
+  `orc.gd` (`assign_barricade`, `_update_barricade_attack`, `_attack_barricade`), `player.gd`
+  hold-interaction path, and `hud.gd` runtime `RepairProgress` label.
+- M9 axe slice: `resources/weapons/axe.tres`, `scenes/weapons/Axe.tscn`,
+  `scripts/weapons/axe.gd`, `scripts/weapons/axe_projectile.gd`.
 
 - Web export preset: `projectbluebean/export_presets.cfg`
 - GitHub Pages output: `docs/index.html`, `docs/index.js`, `docs/index.wasm`, `docs/index.pck`,
@@ -239,6 +330,14 @@ The buyable door's barrier is **not** under the nav region (navmesh spans the do
 spawn orcs behind a closed door — current spawn markers are only in the start/combat rooms.
 
 ## Best Next Step
+
+**Current resume point, superseding any stale roadmap text below:** M8 barricades are done and
+user-approved, and the M9 Axe rework slice is done and verified. The repo is dirty and these changes
+are not committed yet. In the next thread, first inspect `git status`, review the uncommitted diff,
+and ideally commit a verified checkpoint. After that, continue M9 with the **real wall-buy model
+pass**: replace the Staff and Axe blue-box wall-buy panels in `Arena.tscn`/`arena.gd` setup with
+staged KayKit weapon model displays. Do not redo barricades or the Axe rework unless playtest
+feedback asks for it.
 
 M5 (modular dungeon + atmosphere + map/feel polish) is **done and user-approved**. The roadmap
 below is reorganized around **playtest feedback from 2026-06-05** (verbatim notes at the end). Work

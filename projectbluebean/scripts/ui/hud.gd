@@ -21,11 +21,13 @@ var _target = null
 var _tracked_weapon: Node = null
 var _last_ammo := Vector2i.ZERO
 var _hit_marker_time: float = 0.0
+var _repair_progress_label: Label = null
 
 func _ready() -> void:
 	game_over.visible = false
 	prompt_label.visible = false
 	hit_marker.visible = false
+	_create_repair_progress_label()
 	Economy.points_changed.connect(_on_points_changed)
 	GameState.player_died.connect(_on_player_died)
 	GameState.round_changed.connect(_on_round_changed)
@@ -62,6 +64,47 @@ func _process(delta: float) -> void:
 		prompt_label.visible = text != ""
 	else:
 		prompt_label.visible = false
+	_update_repair_progress()
+
+func _create_repair_progress_label() -> void:
+	_repair_progress_label = Label.new()
+	_repair_progress_label.name = "RepairProgress"
+	_repair_progress_label.visible = false
+	_repair_progress_label.modulate = Color(0.95, 0.82, 0.45, 0.95)
+	_repair_progress_label.add_theme_font_size_override("font_size", 30)
+	_repair_progress_label.anchor_left = 0.5
+	_repair_progress_label.anchor_top = 0.5
+	_repair_progress_label.anchor_right = 0.5
+	_repair_progress_label.anchor_bottom = 0.5
+	_repair_progress_label.offset_left = -24.0
+	_repair_progress_label.offset_top = 102.0
+	_repair_progress_label.offset_right = 24.0
+	_repair_progress_label.offset_bottom = 142.0
+	_repair_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_repair_progress_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	$Root.add_child(_repair_progress_label)
+
+func _update_repair_progress() -> void:
+	if _repair_progress_label == null:
+		return
+	if _target == null or not is_instance_valid(_target) or not _target.has_method("get_interact_progress"):
+		_repair_progress_label.visible = false
+		return
+	var progress: float = _target.get_interact_progress()
+	if progress <= 0.0:
+		_repair_progress_label.visible = false
+		return
+	_repair_progress_label.visible = true
+	if progress < 0.25:
+		_repair_progress_label.text = "○"
+	elif progress < 0.5:
+		_repair_progress_label.text = "◔"
+	elif progress < 0.75:
+		_repair_progress_label.text = "◑"
+	elif progress < 0.98:
+		_repair_progress_label.text = "◕"
+	else:
+		_repair_progress_label.text = "●"
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum

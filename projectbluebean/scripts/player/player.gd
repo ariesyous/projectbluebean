@@ -32,6 +32,8 @@ extends CharacterBody3D
 const STAMINA_SPEED_MULT := 1.35       ## Stamin-Up: faster movement
 const SPEED_COLA_RELOAD_MULT := 0.5    ## Speed Cola: reload_time multiplier (<1 = faster)
 const DOUBLE_TAP_FIRE_MULT := 1.5      ## Double Tap: fire_rate multiplier (>1 = faster)
+const BARRICADE_COLLISION_LAYER := 16   ## movement blocker ignored by weapon rays
+const PLAYER_ENTRY_BLOCKER_LAYER := 32  ## keeps player out of enemy spawn alcoves
 
 signal health_changed(current: float, maximum: float)
 signal weapon_changed(weapon: Node)
@@ -68,6 +70,7 @@ var _perks: Dictionary = {}
 
 func _ready() -> void:
 	add_to_group("player")
+	collision_mask |= BARRICADE_COLLISION_LAYER | PLAYER_ENTRY_BLOCKER_LAYER
 	health = max_health
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_register_starting_weapons()
@@ -225,7 +228,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	_handle_weapon_input()
-	_update_interaction()
+	_update_interaction(delta)
 	_update_health_regen(delta)
 	_update_weapon_visuals(delta)
 
@@ -304,18 +307,32 @@ func _handle_weapon_input() -> void:
 			and Input.is_action_pressed("fire"):
 		_current_weapon.try_fire()
 
-func _update_interaction() -> void:
+func _update_interaction(delta: float) -> void:
 	var target = null
 	if interact_ray.is_colliding():
 		var collider = interact_ray.get_collider()
 		if collider and collider.is_in_group("interactable"):
 			target = collider
 	if target != _current_interactable:
+		_cancel_current_hold_interact()
 		_current_interactable = target
 		interact_target_changed.emit(target)
-	if _current_interactable != null and Input.is_action_just_pressed("interact"):
-		if _current_interactable.has_method("interact"):
-			_current_interactable.interact(self)
+	if _current_interactable == null:
+		return
+	var hold_target: bool = _current_interactable.has_method("uses_hold_interact") \
+		and _current_interactable.uses_hold_interact()
+	if hold_target:
+		if Input.is_action_pressed("interact") and _current_interactable.has_method("hold_interact"):
+			_current_interactable.hold_interact(self, delta)
+		elif _current_interactable.has_method("cancel_hold_interact"):
+			_current_interactable.cancel_hold_interact()
+	elif Input.is_action_just_pressed("interact") and _current_interactable.has_method("interact"):
+		_current_interactable.interact(self)
+
+func _cancel_current_hold_interact() -> void:
+	if _current_interactable != null and is_instance_valid(_current_interactable) \
+			and _current_interactable.has_method("cancel_hold_interact"):
+		_current_interactable.cancel_hold_interact()
 
 func _update_health_regen(delta: float) -> void:
 	_time_since_damage += delta

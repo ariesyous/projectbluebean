@@ -4,6 +4,7 @@ extends Node3D
 
 const ORC_SCENE := preload("res://scenes/enemies/Orc.tscn")
 const DungeonAmbience := preload("res://scripts/fx/dungeon_ambience.gd")
+const BarricadeScript := preload("res://scripts/interactables/barricade.gd")
 
 # Dungeon geometry: KayKit Dungeon Remastered, built on a 4-unit grid.
 const KIT := "res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/"
@@ -27,6 +28,7 @@ var _remaining_to_spawn: int = 0
 var _between_round_left: float = 0.0
 var _round_active: bool = false
 var _floor_cells: Dictionary = {}
+var _entry_points: Array = []
 var _prop_collision: StaticBody3D = null
 
 func _ready() -> void:
@@ -108,6 +110,7 @@ func _build_dungeon() -> void:
 	_build_corner_pillars(props)
 	_place_dungeon_props(props)
 	_decorate_buyable_door()
+	_create_barricade_entries()
 
 func _start_ambient_audio() -> void:
 	var ambience := DungeonAmbience.new()
@@ -204,6 +207,34 @@ func _decorate_buyable_door() -> void:
 	# BuyableDoor sits at y=2; the door model's origin is at its base, so drop it
 	# 2 units to stand on the floor. Default yaw spans x and blocks the z corridor.
 	model.position = Vector3(0.0, -2.0, 0.0)
+
+func _create_barricade_entries() -> void:
+	_entry_points.clear()
+	var root := Node3D.new()
+	root.name = "EntryPoints"
+	add_child(root)
+	_add_barricade_entry(root, "Start Window", Vector2i(0, 6), Vector2i(0, 1))
+	_add_barricade_entry(root, "East Breach", Vector2i(4, -2), Vector2i(1, 0))
+	_add_barricade_entry(root, "West Breach", Vector2i(-4, 2), Vector2i(-1, 0))
+
+func _add_barricade_entry(root: Node3D, entry_label: String, cell: Vector2i, dir: Vector2i) -> void:
+	var outside := Vector3(float(dir.x), 0.0, float(dir.y))
+	var pos := Vector3(
+		float(cell.x) * TILE + outside.x * TILE * 0.5,
+		0.0,
+		float(cell.y) * TILE + outside.z * TILE * 0.5
+	)
+	var barricade := BarricadeScript.new() as Barricade
+	if barricade == null:
+		return
+	barricade.name = entry_label.replace(" ", "")
+	root.add_child(barricade)
+	barricade.global_position = pos
+	barricade.setup(entry_label, dir)
+	_entry_points.append({
+		"barricade": barricade,
+		"spawn_position": pos + outside * (TILE * 0.5),
+	})
 
 ## Lift the dark dungeon a touch now that a ceiling encloses it, keeping the mood
 ## while making orc silhouettes readable during kiting.
@@ -302,7 +333,15 @@ func _collect_cells() -> void:
 	_add_room(Rect2i(-4, -2, 9, 5))    # Room B (combat)
 	_floor_cells[Vector2i(0, 3)] = true     # corridor A <-> B
 	_floor_cells[Vector2i(0, -3)] = true    # buyable door into the vault loop
+	_add_barricade_alcoves()
 	_add_vault_loop()
+
+func _add_barricade_alcoves() -> void:
+	# One-cell entry alcoves behind repairable boards. They are part of the
+	# navmesh so orcs can route through naturally once the boards are broken.
+	_floor_cells[Vector2i(0, 7)] = true
+	_floor_cells[Vector2i(5, -2)] = true
+	_floor_cells[Vector2i(-5, 2)] = true
 
 func _add_vault_loop() -> void:
 	# A gated ring for late-round kiting. Only the centre top cell touches the
@@ -379,16 +418,28 @@ func _finish_round() -> void:
 func _spawn_orc() -> void:
 	if _alive_orcs() >= max_alive:
 		return
-	var points := spawn_points.get_children()
-	if points.is_empty():
-		return
-	var marker: Node3D = points[randi() % points.size()]
 	var orc: Node3D = ORC_SCENE.instantiate()
 	var round_index := float(GameState.current_round - 1)
 	orc.set("max_health", float(orc.get("max_health")) * (1.0 + health_scale_per_round * round_index))
 	orc.set("move_speed", float(orc.get("move_speed")) * (1.0 + speed_scale_per_round * round_index))
 	enemies.add_child(orc)
-	orc.global_position = marker.global_position
+
+	if not _entry_points.is_empty():
+		var entry: Dictionary = _entry_points[randi() % _entry_points.size()]
+		var spawn_position: Vector3 = entry.get("spawn_position", Vector3.ZERO)
+		var barricade: Node = entry.get("barricade", null) as Node
+		orc.global_position = spawn_position
+		if barricade != null and is_instance_valid(barricade) and barricade.has_method("is_broken") \
+				and not barricade.is_broken() and orc.has_method("assign_barricade"):
+			orc.assign_barricade(barricade)
+	else:
+		var points := spawn_points.get_children()
+		if points.is_empty():
+			orc.queue_free()
+			return
+		var marker: Node3D = points[randi() % points.size()]
+		orc.global_position = marker.global_position
+
 	_remaining_to_spawn -= 1
 	_update_round_status()
 
