@@ -3,7 +3,7 @@ class_name Barricade
 ## Breakable + repairable window boards for M8 entry points. Orcs damage one
 ## board per hit; players repair one board per interact for a small point reward.
 
-const ENTRY_FRAME_SCENE := preload("res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/wall_archedwindow_gated.gltf")
+const ENTRY_FRAME_SCENE := preload("res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/wall_archedwindow_open.gltf")
 const PLAYER_ENTRY_BLOCKER_LAYER := 32
 
 @export var max_boards: int = 5
@@ -11,7 +11,7 @@ const PLAYER_ENTRY_BLOCKER_LAYER := 32
 @export var repair_time: float = 0.75
 @export var board_width: float = 3.25
 @export var board_spacing: float = 0.32
-@export var board_start_height: float = 0.72
+@export var board_start_height: float = 1.25
 @export var blocker_height: float = 2.35
 @export var blocker_depth: float = 0.36
 
