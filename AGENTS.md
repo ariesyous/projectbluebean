@@ -46,9 +46,18 @@ Completed and committed so far:
 - Added an M5 map-flow pass: the combat room is wider, the buyable door opens into a gated vault
   ring for late-round kiting, and Mystery Box/perks/Pack-a-Punch were moved onto that loop so
   the reward area is no longer a linear dead end.
+- Added a single-threaded Godot Web export for GitHub Pages. The export preset lives at
+  `projectbluebean/export_presets.cfg`; generated Pages artifacts live in repo-root `docs/`.
+  GitHub Pages is enabled for `ariesyous/projectbluebean` from `main` / `/docs` and serves
+  `https://ariesyous.github.io/projectbluebean/`.
+- Fixed the first Web export's gray-screen risk by explicitly including runtime-loaded scripts,
+  autoloads, weapon resources/scenes, sounds, KayKit GLTF props, and the Godot AI helper preload
+  dependency in the Web preset. The live export remains single-threaded (`GODOT_THREADS_ENABLED = false`).
 
 Recent commits (newest first):
 
+- `90e2d0a Fix web export dependencies`
+- `190cb5c Add web export for GitHub Pages`
 - `e31b967 Add visible quick melee animation`
 - `b6fd93a M5: add gated dungeon loop route`
 - `539d4f0 Docs: backlog loop-based dungeon layout`
@@ -102,6 +111,15 @@ Verified most recently:
   The kit's redundant `fbx`/`obj` copies were left on disk (untracked) — only `Assets/gltf` +
   `textures` are committed.
 
+- Web export: installed Godot 4.6.3 export templates locally, exported with `variant/thread_support=false`
+  using the no-threads Web template, and pushed to GitHub Pages. Live checks returned `200` for
+  HTML and `index.wasm` (`application/wasm`); live `index.pck` after the dependency fix is
+  `3,719,720` bytes. The HTML contains `GODOT_THREADS_ENABLED = false`.
+- Browser visual verification could not be completed from Codex because the in-app browser/Node
+  bridge failed with a local Windows sandbox spawn error. User should hard-refresh or open
+  `https://ariesyous.github.io/projectbluebean/?v=90e2d0a` and manually smoke test. If a gray
+  screen persists, inspect the browser console first for missing `res://` resources or WebGL errors.
+
 Known recurring warning:
 
 - `Property agent_height is ceiled to cell_height voxel units and loses precision`
@@ -134,6 +152,11 @@ Known git/sandbox quirk:
   `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/` (4-unit grid: floor
   tiles 4×4, walls 4×4×1; measured via AABB). Dark Environment + dimmed Sun set on `Arena.tscn`.
 
+- Web export preset: `projectbluebean/export_presets.cfg`
+- GitHub Pages output: `docs/index.html`, `docs/index.js`, `docs/index.wasm`, `docs/index.pck`,
+  `docs/.nojekyll`
+- Live Pages URL: `https://ariesyous.github.io/projectbluebean/`
+
 ### How the dungeon builder works (to extend the map)
 `_collect_cells()` defines rooms as `Rect2i` in **tile** coords (world = tile×4) plus corridor
 cells; edit/add rooms there. `_build_dungeon()` then: places a `floor_tile_large` per cell with a
@@ -156,6 +179,10 @@ Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (
 heavy brute), a boss round, downed/revive, and a persistent high-round score.
 
 Roadmap, not immediate backlog: breakable barricades that orcs can destroy.
+
+Immediate pickup for the next thread: manually smoke test the GitHub Pages build in a browser after
+hard refresh/cache bust (`?v=90e2d0a`). If it still loads to a gray screen, grab the browser console
+error and patch the Web export preset or project settings accordingly.
 
 M5 map-design tuning backlog: playtest the new gated vault loop at higher rounds and adjust
 widths, sightlines, spawn pressure, door cost, and machine placement until kiting feels tense
