@@ -17,51 +17,6 @@
 geometry_parsed_geometry_type = 1
 agent_height = 1.6
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_507yn"]
-albedo_color = Color(0.18, 0.16, 0.14, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_7iynj"]
-size = Vector3(30, 0.5, 40)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_xp3bc"]
-size = Vector3(30, 0.5, 40)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5awoa"]
-size = Vector3(30, 4, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_xlsxk"]
-size = Vector3(30, 4, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_01sj7"]
-size = Vector3(30, 4, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_gc5g1"]
-size = Vector3(30, 4, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_bidsv"]
-size = Vector3(1, 4, 40)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_jg37k"]
-size = Vector3(1, 4, 40)
-
-[sub_resource type="BoxMesh" id="BoxMesh_1bpc6"]
-size = Vector3(1, 4, 40)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_mmujr"]
-size = Vector3(1, 4, 40)
-
-[sub_resource type="BoxMesh" id="BoxMesh_dt57b"]
-size = Vector3(13, 4, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_anrmq"]
-size = Vector3(13, 4, 1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_qjpu7"]
-size = Vector3(13, 4, 1)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_dxmy5"]
-size = Vector3(13, 4, 1)
-
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7a6wl"]
 sky_top_color = Color(0.38, 0.45, 0.55, 1)
 sky_horizon_color = Color(0.65, 0.67, 0.7, 1)
@@ -109,80 +64,19 @@ script = ExtResource("1_73cya")
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="." unique_id=345667811]
 navigation_mesh = SubResource("NavigationMesh_73cya")
 
-[node name="Ground" type="StaticBody3D" parent="NavigationRegion3D" unique_id=347495973]
-
-[node name="GroundMesh" type="MeshInstance3D" parent="NavigationRegion3D/Ground" unique_id=276412628]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
-material_override = SubResource("StandardMaterial3D_507yn")
-mesh = SubResource("BoxMesh_7iynj")
-
-[node name="GroundCol" type="CollisionShape3D" parent="NavigationRegion3D/Ground" unique_id=1557300422]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, 0)
-shape = SubResource("BoxShape3D_xp3bc")
-
-[node name="Walls" type="StaticBody3D" parent="NavigationRegion3D" unique_id=219442744]
-
-[node name="SWallMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=1306189208]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -20)
-mesh = SubResource("BoxMesh_5awoa")
-
-[node name="SWallCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=1181680227]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -20)
-shape = SubResource("BoxShape3D_xlsxk")
-
-[node name="NWallMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=1806368235]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 20)
-mesh = SubResource("BoxMesh_01sj7")
-
-[node name="NWallCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=926097074]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 20)
-shape = SubResource("BoxShape3D_gc5g1")
-
-[node name="WWallMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=1950838970]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 2, 0)
-mesh = SubResource("BoxMesh_bidsv")
-
-[node name="WWallCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=1915883073]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -15, 2, 0)
-shape = SubResource("BoxShape3D_jg37k")
-
-[node name="EWallMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=1805393073]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 2, 0)
-mesh = SubResource("BoxMesh_1bpc6")
-
-[node name="EWallCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=947299651]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15, 2, 0)
-shape = SubResource("BoxShape3D_mmujr")
-
-[node name="DivLeftMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=952787834]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 2, 0)
-mesh = SubResource("BoxMesh_dt57b")
-
-[node name="DivLeftCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=1025249130]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 2, 0)
-shape = SubResource("BoxShape3D_anrmq")
-
-[node name="DivRightMesh" type="MeshInstance3D" parent="NavigationRegion3D/Walls" unique_id=445180235]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.5, 2, 0)
-mesh = SubResource("BoxMesh_qjpu7")
-
-[node name="DivRightCol" type="CollisionShape3D" parent="NavigationRegion3D/Walls" unique_id=2000612915]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.5, 2, 0)
-shape = SubResource("BoxShape3D_dxmy5")
-
 [node name="SpawnPoints" type="Node3D" parent="." unique_id=698692935]
 
 [node name="Spawn1" type="Marker3D" parent="SpawnPoints" unique_id=1933226927]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.1, 18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.3, 22)
 
 [node name="Spawn2" type="Marker3D" parent="SpawnPoints" unique_id=1753026228]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.1, 18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, 6)
 
 [node name="Spawn3" type="Marker3D" parent="SpawnPoints" unique_id=1567893640]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0.1, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.3, -6)
 
 [node name="Spawn4" type="Marker3D" parent="SpawnPoints" unique_id=1212373764]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0.1, 4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, -6)
 
 [node name="Enemies" type="Node3D" parent="." unique_id=822563069]
 
@@ -194,10 +88,10 @@ shadow_enabled = true
 environment = SubResource("Environment_2nt6x")
 
 [node name="Player" parent="." unique_id=1579285422 instance=ExtResource("2_4p07w")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 12)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 20)
 
 [node name="BuyableDoor" type="Area3D" parent="." unique_id=1921489895]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -12)
 script = ExtResource("3_rwl2q")
 
 [node name="Shape" type="CollisionShape3D" parent="BuyableDoor" unique_id=591671786]
@@ -213,7 +107,7 @@ mesh = SubResource("BoxMesh_xlsxk")
 shape = SubResource("BoxShape3D_01sj7")
 
 [node name="WallBuy" type="Area3D" parent="." unique_id=1356300895]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.3, 1.5, 10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.5, 1.5, 18)
 script = ExtResource("4_507yn")
 
 [node name="Shape" type="CollisionShape3D" parent="WallBuy" unique_id=1102363151]
@@ -224,7 +118,7 @@ material_override = SubResource("StandardMaterial3D_jg37k")
 mesh = SubResource("BoxMesh_mmujr")
 
 [node name="WallBuyAxe" type="Area3D" parent="." unique_id=399025127]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.3, 1.5, 7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 1.5, 18)
 script = ExtResource("6_axe")
 
 [node name="Shape" type="CollisionShape3D" parent="WallBuyAxe" unique_id=44867320]
@@ -237,19 +131,19 @@ mesh = SubResource("BoxMesh_mmujr")
 [node name="HUD" parent="." unique_id=1671130896 instance=ExtResource("5_507yn")]
 
 [node name="MysteryBox" parent="." unique_id=1459380089 instance=ExtResource("7_xp3bc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -10)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 0)
 
 [node name="PerkReload" parent="." unique_id=1855990172 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -19)
 script = ExtResource("9_bidsv")
 
 [node name="PerkFireRate" parent="." unique_id=74407993 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -19)
 script = ExtResource("10_jg37k")
 
 [node name="PerkSpeed" parent="." unique_id=558338904 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16.5)
 script = ExtResource("11_1bpc6")
 
 [node name="PackAPunch" parent="." unique_id=544359601 instance=ExtResource("12_bidsv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -13)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -23)
