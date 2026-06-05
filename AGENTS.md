@@ -70,6 +70,12 @@ Completed and committed so far:
   - Buyable door now swings open on a left-edge hinge pivot with an `impact.wav` thunk before
     freeing (`buyable_door.gd`); collider frees instantly so the path opens at once. `arena.gd`
     names the door model `DoorModel` for the swing to grab.
+- **M7 sprint / stamina** (verified via `game_eval`): hold **Shift** (`sprint` input action) to move
+  at `move_speed * 1.6` while a stamina meter drains (`player.gd` `_update_stamina`); emptying it
+  sets `_exhausted` and locks you to base speed until stamina **fully** recovers (a forced rest).
+  Stamina regens after a short delay and not while standing still. New `stamina_changed` signal
+  drives a HUD `StaminaBar` (green normally, red when exhausted) added above the health bar in
+  `HUD.tscn`/`hud.gd`. Tunables are `@export`s on `player.gd`.
 - Added a single-threaded Godot Web export for GitHub Pages. The export preset lives at
   `projectbluebean/export_presets.cfg`; generated Pages artifacts live in repo-root `docs/`.
   GitHub Pages is enabled for `ariesyous/projectbluebean` from `main` / `/docs` and serves
@@ -201,7 +207,7 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 M5 (modular dungeon + atmosphere + map/feel polish) is **done and user-approved**. The roadmap
 below is reorganized around **playtest feedback from 2026-06-05** (verbatim notes at the end). Work
 it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. **M6 is
-done** (see Completed list); next up is **M7 → M11**; confirm scope with the user before each.
+done** (see Completed list); next up is **M8 → M11**; confirm scope with the user before each.
 
 ### M6 — Map fixes & quick feel wins (DONE)
 - **Prop collision.** Hallway props (barrels, tables, crates, pillars) are placed by
@@ -219,10 +225,7 @@ done** (see Completed list); next up is **M7 → M11**; confirm scope with the u
   `wall_doorway` model (swing or slide) with a sound before `queue_free`
   (`buyable_door.gd._on_purchased`).
 
-### M7 — Sprint / stamina (small–medium)
-- Hold **Shift to sprint**: a temporary speed boost that drains a stamina meter, then a "rest &
-  recover" cooldown before you can sprint again. Add stamina state + an HUD indicator. Lives in
-  `player.gd` (`move_speed`, new stamina vars) + `hud.gd`. Add a `sprint` input action.
+### M7 — Sprint / stamina (DONE)
 
 ### M8 — Barricades & entry points (Zombies signature; medium–large, high value)
 - Orcs currently "drop in" at `SpawnPoints` markers, which feels jarring. Replace with fixed

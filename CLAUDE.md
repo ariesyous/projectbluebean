@@ -67,10 +67,11 @@ Known current issues / polish:
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
-**M6 is done** (prop collision via navmesh-carving, shrine/table fix, ~18% smaller orcs, door swing
-+ thunk). Recommended next step: **M7 — Sprint/stamina** (Shift), then **M8 — Zombies-style
-breakable + repairable barricades**. Full prioritized backlog (M7 → M11) with file pointers is in
-`AGENTS.md`.
+**M6 + M7 are done** (M6: prop collision via navmesh-carving, shrine/table fix, ~18% smaller orcs,
+door swing + thunk. M7: Shift-to-sprint with a draining stamina meter + HUD bar, full-recovery rest
+on depletion). Recommended next step: **M8 — Zombies-style breakable + repairable barricades**
+(replaces the jarring orc "drop-in" spawns). Full prioritized backlog (M8 → M11) with file pointers
+is in `AGENTS.md`.
 
 ## What this is
 

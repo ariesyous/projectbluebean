@@ -3,6 +3,7 @@ extends CanvasLayer
 ## game-over overlay. Finds the player via the "player" group.
 
 @onready var health_bar: ProgressBar = $Root/HealthBar
+@onready var stamina_bar: ProgressBar = $Root/StaminaBar
 @onready var points_label: Label = $Root/PointsLabel
 @onready var round_label: Label = $Root/RoundLabel
 @onready var enemies_label: Label = $Root/EnemiesLabel
@@ -38,8 +39,10 @@ func _ready() -> void:
 		_player.weapon_changed.connect(_on_weapon_changed)
 		_player.interact_target_changed.connect(_on_interact_target_changed)
 		_player.perks_changed.connect(_on_perks_changed)
+		_player.stamina_changed.connect(_on_stamina_changed)
 		_on_weapon_changed(_player.get("_current_weapon"))
 		_on_perks_changed([])
+		_on_stamina_changed(_player.get("stamina"), _player.get("max_stamina"), false)
 	_on_points_changed(Economy.points)
 	_on_round_changed(GameState.current_round)
 	_on_round_status_changed(
@@ -63,6 +66,14 @@ func _process(delta: float) -> void:
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum
 	health_bar.value = current
+
+const STAMINA_COLOR := Color(0.55, 0.85, 0.5, 0.95)
+const STAMINA_TIRED := Color(0.9, 0.4, 0.3, 0.95)
+
+func _on_stamina_changed(current: float, maximum: float, exhausted: bool) -> void:
+	stamina_bar.max_value = maximum
+	stamina_bar.value = current
+	stamina_bar.modulate = STAMINA_TIRED if exhausted else STAMINA_COLOR
 
 func _on_points_changed(total: int) -> void:
 	points_label.text = "%d pts" % total

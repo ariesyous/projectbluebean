@@ -4,6 +4,14 @@ extends CharacterBody3D
 
 @export var move_speed: float = 5.5
 @export var jump_velocity: float = 4.8
+
+## Sprint / stamina (M7): hold Shift to sprint; draining stamina to empty forces a
+## full rest before you can sprint again.
+@export var sprint_speed_mult: float = 1.6
+@export var max_stamina: float = 100.0
+@export var stamina_drain_rate: float = 32.0
+@export var stamina_regen_rate: float = 20.0
+@export var stamina_regen_delay: float = 0.5
 @export var mouse_sensitivity: float = 0.0025
 @export var max_health: float = 100.0
 @export var health_regen_delay: float = 5.0   ## seconds after last hit before regen
@@ -29,6 +37,7 @@ signal health_changed(current: float, maximum: float)
 signal weapon_changed(weapon: Node)
 signal interact_target_changed(target)  ## the interactable Node, or null
 signal perks_changed(perk_ids: Array)   ## owned perk ids, for the HUD
+signal stamina_changed(current: float, maximum: float, exhausted: bool)
 
 var health: float
 var _time_since_damage: float = 999.0
@@ -41,6 +50,10 @@ var _melee_timer: float = 0.0
 var _melee_anim_time: float = 0.0
 var _mouse_input: Vector2 = Vector2.ZERO
 var _bob_time: float = 0.0
+
+var stamina: float
+var _exhausted: bool = false
+var _time_since_sprint: float = 999.0
 
 ## Perk modifiers (1.0 = no perk). Weapons read these so future weapons benefit too.
 var fire_rate_mult: float = 1.0
@@ -58,7 +71,9 @@ func _ready() -> void:
 	health = max_health
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_register_starting_weapons()
+	stamina = max_stamina
 	health_changed.emit(health, max_health)
+	stamina_changed.emit(stamina, max_stamina, _exhausted)
 	GameState.player_died.connect(_on_player_died)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -200,13 +215,34 @@ func _physics_process(delta: float) -> void:
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
+	var speed := _update_stamina(delta, direction != Vector3.ZERO)
 	if direction:
-		velocity.x = direction.x * move_speed
-		velocity.z = direction.z * move_speed
+		velocity.x = direction.x * speed
+		velocity.z = direction.z * speed
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, move_speed)
-		velocity.z = move_toward(velocity.z, 0.0, move_speed)
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
 	move_and_slide()
+
+## Returns the move speed for this frame (boosted while sprinting) and advances
+## the stamina meter. Sprinting drains it; emptying it sets _exhausted until it
+## fully recovers, so you get a forced rest after over-sprinting.
+func _update_stamina(delta: float, moving: bool) -> float:
+	var sprinting := moving and Input.is_action_pressed("sprint") and not _exhausted and stamina > 0.0
+	if sprinting:
+		stamina = maxf(stamina - stamina_drain_rate * delta, 0.0)
+		_time_since_sprint = 0.0
+		if stamina <= 0.0:
+			_exhausted = true
+		stamina_changed.emit(stamina, max_stamina, _exhausted)
+		return move_speed * sprint_speed_mult
+	_time_since_sprint += delta
+	if stamina < max_stamina and _time_since_sprint >= stamina_regen_delay:
+		stamina = minf(stamina + stamina_regen_rate * delta, max_stamina)
+		if _exhausted and stamina >= max_stamina:
+			_exhausted = false
+		stamina_changed.emit(stamina, max_stamina, _exhausted)
+	return move_speed
 
 	_handle_weapon_input()
 	_update_interaction()
