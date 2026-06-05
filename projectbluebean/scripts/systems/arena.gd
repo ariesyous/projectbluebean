@@ -128,17 +128,17 @@ func _place_dungeon_props(props: Node3D) -> void:
 
 	# Combat room: clutter the edges only so orc routes stay clean.
 	_place_prop("table_medium_broken.gltf", Vector3(-8.5, 0.0, -5.5), deg_to_rad(55.0), props)
-	_place_prop("barrel_small_stack.gltf", Vector3(10.5, 0.0, 5.7), deg_to_rad(-30.0), props)
-	_place_prop("pillar_decorated.gltf", Vector3(-10.0, 0.0, 6.0), 0.0, props)
-	_place_prop("pillar_decorated.gltf", Vector3(10.0, 0.0, -6.0), PI, props)
-	_place_wall_prop("banner_patternA_red.gltf", Vector3(-14.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
-	_place_wall_prop("banner_patternA_green.gltf", Vector3(14.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
+	_place_prop("barrel_small_stack.gltf", Vector3(14.0, 0.0, 5.7), deg_to_rad(-30.0), props)
+	_place_prop("pillar_decorated.gltf", Vector3(-14.0, 0.0, 6.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(14.0, 0.0, -6.0), PI, props)
+	_place_wall_prop("banner_patternA_red.gltf", Vector3(-18.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
+	_place_wall_prop("banner_patternA_green.gltf", Vector3(18.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
 
-	# Vault room: richer dressing around the perk and Pack-a-Punch machines.
-	_place_prop("table_long_decorated_A.gltf", Vector3(0.0, 0.0, -21.2), PI, props)
-	_place_prop("barrel_large.gltf", Vector3(-6.8, 0.0, -22.5), deg_to_rad(12.0), props)
-	_place_prop("barrel_small.gltf", Vector3(6.5, 0.0, -22.0), deg_to_rad(-8.0), props)
-	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -26.0), Vector2i(0, -1), props, 2.25)
+	# Vault loop: keep the middle open so players can run the ring cleanly.
+	_place_prop("table_long_decorated_A.gltf", Vector3(0.0, 0.0, -34.2), PI, props)
+	_place_prop("barrel_large.gltf", Vector3(-16.0, 0.0, -28.0), deg_to_rad(12.0), props)
+	_place_prop("barrel_small.gltf", Vector3(16.0, 0.0, -28.0), deg_to_rad(-8.0), props)
+	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -38.0), Vector2i(0, -1), props, 2.25)
 
 func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) -> void:
 	var scene := load(KIT + model) as PackedScene
@@ -167,10 +167,25 @@ func _place_wall_prop(model: String, wall_pos: Vector3, dir: Vector2i, props: No
 
 func _collect_cells() -> void:
 	_add_room(Rect2i(-2, 4, 5, 3))     # Room A (start)
-	_add_room(Rect2i(-3, -2, 7, 5))    # Room B (combat)
-	_add_room(Rect2i(-2, -6, 5, 3))    # Room C (vault)
+	_add_room(Rect2i(-4, -2, 9, 5))    # Room B (combat)
 	_floor_cells[Vector2i(0, 3)] = true     # corridor A <-> B
-	_floor_cells[Vector2i(0, -3)] = true    # corridor B <-> C
+	_floor_cells[Vector2i(0, -3)] = true    # buyable door into the vault loop
+	_add_vault_loop()
+
+func _add_vault_loop() -> void:
+	# A gated ring for late-round kiting. Only the centre top cell touches the
+	# combat room, so the existing buyable door remains the loop unlock.
+	for tx in range(-4, 5):
+		_floor_cells[Vector2i(tx, -4)] = true
+		_floor_cells[Vector2i(tx, -8)] = true
+	for tz in range(-8, -3):
+		_floor_cells[Vector2i(-4, tz)] = true
+		_floor_cells[Vector2i(4, tz)] = true
+	_floor_cells[Vector2i(-5, -6)] = true
+	_floor_cells[Vector2i(5, -6)] = true
+	_floor_cells[Vector2i(-1, -9)] = true
+	_floor_cells[Vector2i(0, -9)] = true
+	_floor_cells[Vector2i(1, -9)] = true
 
 func _add_room(r: Rect2i) -> void:
 	for tx in range(r.position.x, r.position.x + r.size.x):

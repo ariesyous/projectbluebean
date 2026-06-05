@@ -35,14 +35,16 @@ complete; M5 (map & atmosphere) is in progress.**
   door gates the vault. Atmosphere: wall torches (`scripts/fx/torch_flicker.gd`), dark
   Environment, and fog. Kit lives at `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/`
   (only `Assets/gltf` + `textures` committed; `fbx`/`obj` left untracked).
+- M5 map-flow pass: the combat room is wider, and the buyable door opens into a gated vault
+  loop for late-round kiting. Mystery Box, perks, and Pack-a-Punch were moved onto the loop.
 
 Most recently verified through Godot MCP (see `AGENTS.md` for the full list):
 
 - M4 Mystery Box, perk shrines, and Pack-a-Punch all verified via `game_eval` (spend amounts,
   effects, re-purchase blocks, shared `.tres` left unmutated by PaP).
-- M5 dungeon: 67 floor tiles + 56 walls build, player lands on floor, walls block movement,
-  navmesh bakes (orcs reachable), buyable door blocks then opens the vault; torch/fog mood
-  confirmed by screenshots.
+- M5 dungeon: 91 floor tiles + 98 walls build, moved machines are on the vault loop, navmesh
+  bakes, the buyable door blocks the loop before purchase and clears after purchase, and
+  `NavigationServer3D` finds a 22-point path from combat to Pack-a-Punch.
 
 Known current issues / polish:
 
@@ -51,13 +53,14 @@ Known current issues / polish:
 - The dungeon has no ceiling — a dark flat background shows above the 4-tall walls (reads as a
   dark void; fine for mood, add a ceiling/raise walls if undesired).
 - Convex corners use overlapping straight walls (kit has `wall_corner` pieces to use instead).
-- Map flow is still too linear for harder rounds. Backlog a proper traversal loop so the player
-  can kite through a circular route as pressure ramps, with fair spawns, clear door gates, and
-  reliable orc nav through the full path.
+- The new vault loop needs higher-round manual playtesting for width, sightlines, spawn pressure,
+  door cost, and machine placement.
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
-Recommended next step: finish M5 polish — ambient dungeon audio, blood/impact particles, breakable barricades, and dungeon props/doorway arches (use the kit's `wall_corner`/prop pieces). Then start M6 (menus, special orc types, boss round, high score).
+Recommended next step: finish M5 polish - breakable barricades, doorway arches/corners, and loop
+feel tuning after manual playtest. Then start M6 (menus, special orc types, boss round, high
+score).
 
 ## What this is
 

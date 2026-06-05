@@ -67,13 +67,13 @@ navigation_mesh = SubResource("NavigationMesh_73cya")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.3, 22)
 
 [node name="Spawn2" type="Marker3D" parent="SpawnPoints" unique_id=1753026228]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, 6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.3, 6)
 
 [node name="Spawn3" type="Marker3D" parent="SpawnPoints" unique_id=1567893640]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0.3, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0.3, -6)
 
 [node name="Spawn4" type="Marker3D" parent="SpawnPoints" unique_id=1212373764]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.3, -6)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0.3, -6)
 
 [node name="Enemies" type="Node3D" parent="." unique_id=822563069]
 
@@ -129,19 +129,19 @@ mesh = SubResource("BoxMesh_mmujr")
 [node name="HUD" parent="." unique_id=1671130896 instance=ExtResource("5_507yn")]
 
 [node name="MysteryBox" parent="." unique_id=1459380089 instance=ExtResource("7_xp3bc")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, -16)
 
 [node name="PerkReload" parent="." unique_id=1855990172 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7, 0, -19)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, -24)
 script = ExtResource("9_bidsv")
 
 [node name="PerkFireRate" parent="." unique_id=74407993 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0, -19)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, -24)
 script = ExtResource("10_jg37k")
 
 [node name="PerkSpeed" parent="." unique_id=558338904 instance=ExtResource("8_gc5g1")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -16.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -34)
 script = ExtResource("11_1bpc6")
 
 [node name="PackAPunch" parent="." unique_id=544359601 instance=ExtResource("12_bidsv")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -23)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -36)

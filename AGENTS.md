@@ -41,6 +41,9 @@ Completed and committed so far:
   open. Three rooms (start / combat / vault) linked by corridors; the buyable door gates the
   vault. Added **atmosphere**: 18 wall-mounted torches with flickering lights
   (`scripts/fx/torch_flicker.gd`), a dark dungeon Environment, and fog.
+- Added an M5 map-flow pass: the combat room is wider, the buyable door opens into a gated vault
+  ring for late-round kiting, and Mystery Box/perks/Pack-a-Punch were moved onto that loop so
+  the reward area is no longer a linear dead end.
 
 Recent commits (newest first):
 
@@ -86,11 +89,13 @@ Verified most recently:
   damage 45 (duplicate confirmed). Re-purchase on an upgraded weapon is blocked (0 spent); a
   freshly equipped Staff is upgradeable independently; the ammo readout tints violet only while
   an upgraded weapon is held. Screenshot confirms the glowing-portal machine in the far room.
-- M5 dungeon: builder makes 67 floor tiles + 56 walls; player lands on the floor, walls block
+- M5 dungeon: builder makes 91 floor tiles + 98 walls; player lands on the floor, walls block
   movement, the navmesh bakes (orcs report reachable paths through corridors), and the buyable
-  door blocks the player at the vault entrance until bought, then opens. Torch-lit/fog screenshots
-  confirm the mood. The kit's redundant `fbx`/`obj` copies were left on disk (untracked) — only
-  `Assets/gltf` + `textures` are committed.
+  door blocks the player at the vault loop until bought, then opens. Torch-lit/fog screenshots
+  confirm the mood. Runtime check: a ray from combat to loop hit `Barrier` before purchase and
+  cleared after purchase; `NavigationServer3D` found a 22-point path from combat to Pack-a-Punch.
+  The kit's redundant `fbx`/`obj` copies were left on disk (untracked) — only `Assets/gltf` +
+  `textures` are committed.
 
 Known recurring warning:
 
@@ -136,20 +141,18 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-M4 is complete; **M5 is underway** — the modular dungeon, multi-room layout, and torch/fog
-atmosphere are in. Remaining M5 polish: **ambient dungeon audio** (a looping `AudioStreamPlayer`),
-**blood/impact particles** on orc hits, **barricades orcs break**, and dungeon **props**
-(barrels, banners, cobwebs from the kit) + nicer doorway arches at the corridor openings.
+M4 is complete; **M5 is underway** - the modular dungeon, gated vault loop, torch/fog atmosphere,
+ambient audio, props, and orc-hit blood particles are in. Remaining M5 polish is mainly
+**barricades orcs break**, doorway arches/corners, and loop feel tuning.
 Consider tuning torch/ambient brightness for playability and adding `wall_corner` pieces so
 convex corners don't rely on overlapping straight walls.
 
 Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (ranged shaman,
 heavy brute), a boss round, downed/revive, and a persistent high-round score.
 
-M5 map-design backlog: redesign/expand the dungeon into a player-traversable loop before final
-map lock. The current linear start/combat/vault chain works, but higher rounds need a circular
-route where the player can kite and recover while orcs pressure from behind and ahead. Preserve
-clear sightlines, readable door gates, spawn fairness, and navmesh reliability when adding this.
+M5 map-design tuning backlog: playtest the new gated vault loop at higher rounds and adjust
+widths, sightlines, spawn pressure, door cost, and machine placement until kiting feels tense
+without becoming a free reset.
 
 Possible earlier-milestone polish: a Mystery Box that relocates, perk loss/limit, and a HUD
 weapon-name label (the upgraded "+" name is only surfaced via the violet ammo tint today).
