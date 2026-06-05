@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The newest concise handoff is in `AGENTS.md`. Read that first in a new thread.
 
-Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
+Current status as of commit `ec5c251 M5: torch-lit dungeon atmosphere`. **M1–M4 are
+complete; M5 (map & atmosphere) is in progress.**
 
 - M1 core loop/economy is playable.
 - Goblin/orc hit detection is fixed.
@@ -35,21 +36,23 @@ Current status as of commit `dfd4c30 Add weapon hit and reload feedback`:
   Environment, and fog. Kit lives at `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/`
   (only `Assets/gltf` + `textures` committed; `fbx`/`obj` left untracked).
 
-Most recently verified through Godot MCP:
+Most recently verified through Godot MCP (see `AGENTS.md` for the full list):
 
-- Crossbow hit reduces enemy health `100 -> 55`, decrements ammo, and flashes the hit marker.
-- Hit marker clears after its short flash.
-- Reload HUD shows `Reloading`, then returns to ammo text.
-- Fire Staff projectile damage, melee damage, weapon switching, Staff refill, and Round 2
-  scheduling were verified in earlier checkpoints.
-- Procedural recoil/reload tweens apply cleanly via `.as_relative()`.
+- M4 Mystery Box, perk shrines, and Pack-a-Punch all verified via `game_eval` (spend amounts,
+  effects, re-purchase blocks, shared `.tres` left unmutated by PaP).
+- M5 dungeon: 67 floor tiles + 56 walls build, player lands on floor, walls block movement,
+  navmesh bakes (orcs reachable), buyable door blocks then opens the vault; torch/fog mood
+  confirmed by screenshots.
 
 Known current issues / polish:
 
-- The Crossbow view model still floats somewhat in the middle of the air, but it does not block aim.
-- Existing navmesh warning persists: `Property agent_height is ceiled to cell_height voxel units
-  and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
-- No firing/reload SFX yet.
+- Existing navmesh warning persists (benign): `Property agent_height is ceiled to cell_height
+  voxel units and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
+- The dungeon has no ceiling — a dark flat background shows above the 4-tall walls (reads as a
+  dark void; fine for mood, add a ceiling/raise walls if undesired).
+- Convex corners use overlapping straight walls (kit has `wall_corner` pieces to use instead).
+- The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
+  still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
 Recommended next step: finish M5 polish — ambient dungeon audio, blood/impact particles, breakable barricades, and dungeon props/doorway arches (use the kit's `wall_corner`/prop pieces). Then start M6 (menus, special orc types, boss round, high score).
 

@@ -42,14 +42,14 @@ Completed and committed so far:
   vault. Added **atmosphere**: 18 wall-mounted torches with flickering lights
   (`scripts/fx/torch_flicker.gd`), a dark dungeon Environment, and fog.
 
-Recent commits:
+Recent commits (newest first):
 
+- `ec5c251 M5: torch-lit dungeon atmosphere`
+- `adf6675 M5: replace greybox with KayKit modular dungeon`
+- `da7399d Add M4 Pack-a-Punch weapon upgrade machine`
+- `0f5355a Add M4 perk shrines (Stamina, Quick Hands, Frenzy)`
+- `89a3839 Add M4 Mystery Box (random weapon roll for points)`
 - `afcfadf Add weapon audio and visual impact polish`
-- `ba47ccb Fix weapon procedural animation drifting on rapid fire`
-- `daf786a Implement procedural weapon sway and bob`
-- `7172aa6 Add throwing axe, procedural weapon animations, and ammo refills`
-- `dfd4c30 Add weapon hit and reload feedback`
-- `2751734 Use KayKit weapon view models`
 
 ## Verification Notes
 
@@ -113,8 +113,26 @@ Known git/sandbox quirk:
 - Fire bolt: `projectbluebean/scripts/weapons/fire_bolt.gd`,
   `projectbluebean/scenes/weapons/FireBolt.tscn`
 - HUD: `projectbluebean/scripts/ui/hud.gd`, `projectbluebean/scenes/ui/HUD.tscn`
-- Round system: `projectbluebean/scripts/systems/arena.gd`
+- Round system + dungeon builder: `projectbluebean/scripts/systems/arena.gd`
 - Enemy: `projectbluebean/scripts/enemies/orc.gd`, `projectbluebean/scenes/enemies/Orc.tscn`
+- M4 interactables: `scripts/interactables/mystery_box.gd` (+ `MysteryBox.tscn`),
+  `buyable_perk.gd` + `perk_reload/perk_firerate/perk_speed.gd` (+ `PerkShrine.tscn`),
+  `buyable_pap.gd` (+ `PackAPunch.tscn`). Perk state + `fire_rate_mult`/`reload_time_mult` live
+  on `player.gd`; `weapon.gd` reads them and has `pack_a_punch()`.
+- M5 dungeon: built in `arena.gd` (`_build_dungeon` / `_collect_cells` / `_add_room` /
+  `_place_torch`); torch flicker in `scripts/fx/torch_flicker.gd`. Kit at
+  `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/` (4-unit grid: floor
+  tiles 4×4, walls 4×4×1; measured via AABB). Dark Environment + dimmed Sun set on `Arena.tscn`.
+
+### How the dungeon builder works (to extend the map)
+`_collect_cells()` defines rooms as `Rect2i` in **tile** coords (world = tile×4) plus corridor
+cells; edit/add rooms there. `_build_dungeon()` then: places a `floor_tile_large` per cell with a
+per-cell floor collider; for each cell edge whose neighbour is empty, places a `wall` + a 4×4×1
+box collider (rotated 90° on the two x-facing sides); and mounts a torch on every 3rd wall.
+Floors/walls/colliders go **under `NavigationRegion3D`** so `_bake_navigation()` parses them
+(static colliders); torches go under a `DungeonProps` node on `Arena` so they don't affect nav.
+The buyable door's barrier is **not** under the nav region (navmesh spans the doorway), so don't
+spawn orcs behind a closed door — current spawn markers are only in the start/combat rooms.
 
 ## Best Next Step
 
