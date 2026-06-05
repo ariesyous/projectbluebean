@@ -33,6 +33,7 @@ func _ready() -> void:
 	GameState.reset()
 	Economy.reset()
 	_build_dungeon()
+	_tune_environment()
 	_start_ambient_audio()
 	await _bake_navigation()
 	_start_round()
@@ -98,7 +99,10 @@ func _build_dungeon() -> void:
 			if torch_i % 3 == 0:
 				_place_torch(Vector3(wx, 0.0, wz), dir, props)
 
+	_build_ceiling(props)
+	_build_corner_pillars(props)
 	_place_dungeon_props(props)
+	_decorate_buyable_door()
 
 func _start_ambient_audio() -> void:
 	var ambience := DungeonAmbience.new()
@@ -114,11 +118,96 @@ func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
 	var light := OmniLight3D.new()
 	light.set_script(load("res://scripts/fx/torch_flicker.gd"))
 	light.light_color = Color(1.0, 0.6, 0.25)
-	light.light_energy = 3.2
-	light.omni_range = 9.0
+	light.light_energy = 4.2
+	light.omni_range = 12.0
 	light.shadow_enabled = false
 	props.add_child(light)
 	light.global_position = wall_pos + inner * 0.6 + Vector3(0.0, 2.7, 0.0)
+
+## Cap the dungeon with a ceiling so the dark void above the 4-tall walls is hidden.
+func _build_ceiling(parent: Node3D) -> void:
+	var ceil_scene: PackedScene = load(KIT + "ceiling_tile.gltf")
+	if ceil_scene == null:
+		push_warning("Missing ceiling_tile.gltf")
+		return
+	var ceiling := Node3D.new()
+	ceiling.name = "DungeonCeiling"
+	parent.add_child(ceiling)
+	for cell in _floor_cells:
+		var tile: Node3D = ceil_scene.instantiate()
+		ceiling.add_child(tile)
+		tile.position = Vector3(cell.x * TILE, WALL_H, cell.y * TILE)
+
+## Place a corner buttress pillar at every convex corner (a cell whose two
+## perpendicular edges are both walls and whose diagonal neighbour is empty), so
+## corners read as columns instead of two straight walls poking through each other.
+func _build_corner_pillars(parent: Node3D) -> void:
+	var scene: PackedScene = load(KIT + "wall_corner.gltf")
+	if scene == null:
+		push_warning("Missing wall_corner.gltf")
+		return
+	var pillars := Node3D.new()
+	pillars.name = "CornerPillars"
+	parent.add_child(pillars)
+	var diags := [Vector2i(-1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1)]
+	for cell in _floor_cells:
+		for d in diags:
+			if _floor_cells.has(cell + Vector2i(d.x, 0)):
+				continue
+			if _floor_cells.has(cell + Vector2i(0, d.y)):
+				continue
+			if _floor_cells.has(cell + d):
+				continue
+			var jx: float = cell.x * TILE + d.x * TILE * 0.5
+			var jz: float = cell.y * TILE + d.y * TILE * 0.5
+			var pil: Node3D = scene.instantiate()
+			pillars.add_child(pil)
+			pil.position = Vector3(jx, 0.0, jz)
+			pil.rotation.y = _corner_yaw(d)
+
+## Maps a convex-corner's exterior diagonal to the wall_corner yaw that tucks the
+## buttress into that corner. Calibrated from the piece's local AABB.
+func _corner_yaw(d: Vector2i) -> float:
+	if d == Vector2i(-1, 1):
+		return 0.0
+	if d == Vector2i(-1, -1):
+		return PI * 0.5
+	if d == Vector2i(1, -1):
+		return PI
+	return PI * 1.5
+
+## Swap the gated door's plain emissive box for a real KayKit door model. The box
+## collider stays (it's the gate); the whole BuyableDoor frees on purchase so the
+## door model disappears with it.
+func _decorate_buyable_door() -> void:
+	var door := get_node_or_null("BuyableDoor")
+	if door == null:
+		return
+	var barrier := door.get_node_or_null("Barrier")
+	if barrier == null:
+		return
+	var mesh := barrier.get_node_or_null("BarrierMesh") as MeshInstance3D
+	if mesh != null:
+		mesh.visible = false
+	var scene: PackedScene = load(KIT + "wall_doorway.gltf")
+	if scene == null:
+		push_warning("Missing wall_doorway.gltf")
+		return
+	var model: Node3D = scene.instantiate()
+	barrier.add_child(model)
+	# BuyableDoor sits at y=2; the door model's origin is at its base, so drop it
+	# 2 units to stand on the floor. Default yaw spans x and blocks the z corridor.
+	model.position = Vector3(0.0, -2.0, 0.0)
+
+## Lift the dark dungeon a touch now that a ceiling encloses it, keeping the mood
+## while making orc silhouettes readable during kiting.
+func _tune_environment() -> void:
+	var we := $WorldEnvironment as WorldEnvironment
+	if we == null or we.environment == null:
+		return
+	var env := we.environment
+	env.ambient_light_energy = 0.85
+	env.fog_density = 0.013
 
 func _place_dungeon_props(props: Node3D) -> void:
 	# Start room: readable silhouettes near the side walls, leaving the lane clear.

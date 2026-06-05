@@ -46,6 +46,17 @@ Completed and committed so far:
 - Added an M5 map-flow pass: the combat room is wider, the buyable door opens into a gated vault
   ring for late-round kiting, and Mystery Box/perks/Pack-a-Punch were moved onto that loop so
   the reward area is no longer a linear dead end.
+- **M5 map/feel polish** (all in `arena.gd`, verified, playtested "great, very good"):
+  - `_build_ceiling()` caps every floor cell with `ceiling_tile.gltf` at wall height — the dark
+    void above the walls is gone, replaced by a beamed ceiling.
+  - `_build_corner_pillars()` places a `wall_corner` buttress at every convex corner (a cell with
+    two perpendicular walls + an empty diagonal) via `_corner_yaw()` (yaw calibrated from the
+    piece AABB) so corners read as columns instead of two overlapping straight walls.
+  - `_decorate_buyable_door()` hides the gated door's emissive box mesh and stands a
+    `wall_doorway.gltf` model (stone-framed wooden door) in the gate; the box collider stays and
+    the whole `BuyableDoor` still frees on purchase.
+  - `_tune_environment()` raises ambient 0.35→0.85 and thins fog (the sealed ceiling darkened the
+    box); `_place_torch` torches went 3.2→4.2 energy / 9→12 range. Warm, moody, readable.
 - Added a single-threaded Godot Web export for GitHub Pages. The export preset lives at
   `projectbluebean/export_presets.cfg`; generated Pages artifacts live in repo-root `docs/`.
   GitHub Pages is enabled for `ariesyous/projectbluebean` from `main` / `/docs` and serves
@@ -110,6 +121,11 @@ Verified most recently:
   cleared after purchase; `NavigationServer3D` found a 22-point path from combat to Pack-a-Punch.
   The kit's redundant `fbx`/`obj` copies were left on disk (untracked) — only `Assets/gltf` +
   `textures` are committed.
+- M5 polish: with ceiling + corner pillars + door model + brighter lights, the build still parses
+  clean (only the benign `agent_height` warning), the navmesh is unaffected (ceiling/pillars/door
+  model live under `DungeonProps`, not the nav region) — the door still blocks the loop (ray hits
+  `BuyableDoor/Barrier`) and the combat→Pack-a-Punch path is still 22 points — and the scene runs
+  at 144 FPS with 36 omni lights. User playtested and approved the look.
 
 - Web export: installed Godot 4.6.3 export templates locally, exported with `variant/thread_support=false`
   using the no-threads Web template, and pushed to GitHub Pages. Live checks returned `200` for
@@ -169,27 +185,85 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-M4 is complete; **M5 is playable and mostly complete** - the modular dungeon, gated vault loop,
-torch/fog atmosphere, ambient audio, props, orc-hit blood particles, and visible quick melee are
-in. Remaining near-term polish is loop feel tuning, torch/ambient brightness, doorway
-arches/corners, and adding `wall_corner` pieces so convex corners don't rely on overlapping
-straight walls.
+M5 (modular dungeon + atmosphere + map/feel polish) is **done and user-approved**. The roadmap
+below is reorganized around **playtest feedback from 2026-06-05** (verbatim notes at the end). Work
+it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. Suggested
+order is M6 → M11; confirm scope with the user before starting each.
 
-Then **M6 — Meta & game feel**: main menu, pause/settings, special orc types (ranged shaman,
-heavy brute), a boss round, downed/revive, and a persistent high-round score.
+### M6 — Map fixes & quick feel wins (small; do first)
+- **Prop collision.** Hallway props (barrels, tables, crates, pillars) are placed by
+  `_place_prop` / `_place_wall_prop` in `arena.gd` with **no colliders**, so the player *and*
+  orcs clip straight through them. Add collision (a `StaticBody3D` + convex/box shape per prop)
+  when instancing.
+- **Perk shrine clipping into the food table.** In `_place_dungeon_props`, `PerkSpeed` (Arena.tscn
+  at `(0,0,-34)`) overlaps `table_long_decorated_A` at `(0,0,-34.2)` — the shrine sits inside the
+  table and both are walk-through. Move the table (or shrine) and make sure every shrine stands on
+  clear floor with collision.
+- **Shrink the orcs ~15–20%.** They tower over the player — spooky, but you can't outmaneuver them
+  in narrow halls. Scale the model + collider in `Orc.tscn`, then re-verify hit detection, nav
+  agent radius/height, and attack range.
+- **Door open animation + SFX.** The buyable door just vanishes on purchase. Animate the new
+  `wall_doorway` model (swing or slide) with a sound before `queue_free`
+  (`buyable_door.gd._on_purchased`).
 
-Roadmap, not immediate backlog: breakable barricades that orcs can destroy.
+### M7 — Sprint / stamina (small–medium)
+- Hold **Shift to sprint**: a temporary speed boost that drains a stamina meter, then a "rest &
+  recover" cooldown before you can sprint again. Add stamina state + an HUD indicator. Lives in
+  `player.gd` (`move_speed`, new stamina vars) + `hud.gd`. Add a `sprint` input action.
 
-Immediate pickup for the next thread: manually smoke test the GitHub Pages build in a browser after
-hard refresh/cache bust (`?v=90e2d0a`). If it still loads to a gray screen, grab the browser console
-error and patch the Web export preset or project settings accordingly.
+### M8 — Barricades & entry points (Zombies signature; medium–large, high value)
+- Orcs currently "drop in" at `SpawnPoints` markers, which feels jarring. Replace with fixed
+  **entry points** — barricaded windows / wall cavities the orcs must **break through**. Kit has
+  `barrier*.gltf`, `wall_archedwindow_gated`, `wall_window_*`, `wall_broken`, `barrier_corner`.
+- The player can **repair** a barricade by interacting (rebuild boards, small point reward, à la
+  CoD Zombies) — the core defensive loop for rounds ~1–15. Needs barricade health, an orc
+  tear-down animation/SFX, board-by-board repair, and a spawner rework in `arena.gd` that pulls
+  orcs from entry points instead of the current cap-limited markers.
 
-M5 map-design tuning backlog: playtest the new gated vault loop at higher rounds and adjust
-widths, sightlines, spawn pressure, door cost, and machine placement until kiting feels tense
-without becoming a free reset.
+### M9 — Weapon overhaul & models (medium)
+- **Axe rework** (`scenes/weapons/Axe.tscn` + `AxeProjectile.tscn` + axe weapon data/script):
+  hold it **upright** (currently flat against the POV), throw with a **natural overhand arc**
+  (currently flung sideways), and make it a **one-shot kill** — justified by a **slow reload** and
+  a **10-axe capacity** that forces looping back to the start room for ammo. Rebalance so the axe
+  is a real alternative; right now there's no reason not to buy the Fire Staff.
+- **Real wall-buy models.** The Staff and Axe wall-buys are **blue boxes** (emissive
+  `StandardMaterial3D` panels in `Arena.tscn`). Replace with the staged KayKit weapon models.
+- Fire Staff is "machine-gun" fast — fun; leave as-is for now, add more weapons later.
 
-Possible earlier-milestone polish: a Mystery Box that relocates, perk loss/limit, and a HUD
-weapon-name label (the upgraded "+" name is only surfaced via the violet ammo tint today).
+### M10 — Enemy AI & map redesign (large; later)
+- **Orc pathing** sticks on corners and is basic. Improve nav: agent radius/avoidance, path
+  smoothing, corner handling, maybe local steering (`orc.gd` + `NavigationAgent3D` config).
+- **Redesign the initial dungeon** to be less basic / more natural — better layout, varied rooms,
+  sightlines. Hand-author or substantially improve the procedural builder in `arena.gd`.
+
+### M11 — Meta & game feel (the old M6)
+- Main menu, pause, settings, special orc types (ranged shaman, heavy brute), a boss round,
+  downed/revive, persistent high score. (Decided earlier: solo death stays an instant game-over
+  for now — no revive this pass.)
+
+### Still-open earlier items
+- Web export browser smoke test: hard-refresh / cache-bust
+  `https://ariesyous.github.io/projectbluebean/?v=<sha>` and confirm it isn't a gray screen; if it
+  is, grab the browser console error and patch the Web preset.
+- Loop-feel tuning knobs (revisit during/after M6): door cost (`buyable_door.gd` = 1000) and the
+  `arena.gd` spawn exports (`spawn_interval`, `max_alive`, `enemies_added_per_round`, health/speed
+  scales).
+
+### Raw playtest feedback — 2026-06-05 (verbatim intent, so nothing's lost)
+- Loved it overall ("great, very good"). Wants a **Sprint** (Shift → speed boost → rest/recover).
+- Map is a bit **simple/basic**; random props in the **middle of hallways** are walk-through for
+  player and enemies; a **perk shrine sits inside a food table** (also walk-through). Wants the
+  initial map redesigned to be better/more natural — "for now this is a good start."
+- Wants **Zombies-style barricades**: enemies break through a window/wall cavity, player repairs
+  walls/windows (very useful rounds ~1–15). Current "drop-in" spawns feel jarring.
+- **Enemy AI** gets stuck on corners / basic pathing — OK to improve later.
+- **Enemies are a bit large** / tower over the player — spooky but you can't outmaneuver them in
+  narrow halls; shrink a bit.
+- Wants a **door-open animation** and general polish; **Staff & Axe wall-buys are just blue boxes**.
+- **Axe**: held **upright** (not flat), thrown **naturally** (not sideways), **one-shot kill**,
+  **slow reload**, **capacity 10** (loop back for ammo). Hard to justify over the Fire Staff today.
+- **Fire Staff** is basically a machine gun right now — fun, fine for now; more weapons later.
+- Process note: **don't one-shot everything** — work systematically in achievable milestones.
 
 ## User Preferences / Context
 

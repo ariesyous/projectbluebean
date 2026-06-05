@@ -6,7 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The newest concise handoff is in `AGENTS.md`. Read that first in a new thread.
 
-Current status: **M1-M4 are complete; M5 (map & atmosphere) is playable and mostly complete.**
+Current status: **M1-M5 are complete and user-approved** (M5 = modular dungeon, atmosphere, and
+map/feel polish: ceiling, corner buttress pillars, real gated-door model, brighter lighting). The
+next work is **playtest-feedback-driven** — see the prioritized **M6 → M11** roadmap in `AGENTS.md`
+(map fixes & prop collision, sprint/stamina, Zombies-style breakable+repairable barricades, axe &
+weapon-model overhaul, enemy-AI & map redesign, then meta/game-feel). Work milestone by milestone;
+the user does not want everything one-shotted.
 
 - M1 core loop/economy is playable.
 - Goblin/orc hit detection is fixed.
@@ -38,6 +43,11 @@ Current status: **M1-M4 are complete; M5 (map & atmosphere) is playable and most
   (only `Assets/gltf` + `textures` committed; `fbx`/`obj` left untracked).
 - M5 map-flow pass: the combat room is wider, and the buyable door opens into a gated vault
   loop for late-round kiting. Mystery Box, perks, and Pack-a-Punch were moved onto the loop.
+- M5 map/feel polish (in `arena.gd`, verified + playtested): `_build_ceiling` caps cells with
+  `ceiling_tile` (kills the void), `_build_corner_pillars`/`_corner_yaw` add `wall_corner`
+  buttresses at convex corners, `_decorate_buyable_door` swaps the gated door's emissive box for a
+  `wall_doorway` model, and `_tune_environment` + brighter torches make it readable (ambient 0.85,
+  torch 4.2/range 12). Navmesh unaffected; 144 FPS / 36 lights.
 
 Most recently verified through Godot MCP (see `AGENTS.md` for the full list):
 
@@ -51,17 +61,19 @@ Known current issues / polish:
 
 - Existing navmesh warning persists (benign): `Property agent_height is ceiled to cell_height
   voxel units and loses precision` from `scripts/systems/arena.gd:_bake_navigation`.
-- The dungeon has no ceiling — a dark flat background shows above the 4-tall walls (reads as a
-  dark void; fine for mood, add a ceiling/raise walls if undesired).
-- Convex corners use overlapping straight walls (kit has `wall_corner` pieces to use instead).
-- The new vault loop needs higher-round manual playtesting for width, sightlines, spawn pressure,
-  door cost, and machine placement.
+- **Props have no collision** — player and orcs clip through hallway barrels/tables/crates, and a
+  perk shrine (`PerkSpeed` at `(0,0,-34)`) sits inside `table_long_decorated_A` at `(0,0,-34.2)`.
+  First M6 fix.
+- Orcs tower over the player and stick on corners; the door opens with no animation; Staff/Axe
+  wall-buys are placeholder blue boxes; the Axe holds/throws unnaturally and is underpowered vs the
+  Fire Staff. All captured in the AGENTS.md M6–M10 roadmap.
 - The kit's redundant `Assets/fbx`, `Assets/fbx(unity)`, `Assets/obj`, and `Samples` folders are
   still on disk (untracked, ~42 MB); only `Assets/gltf` + `textures` are committed.
 
-Recommended next step: loop feel tuning after manual playtest, then doorway arches/corners and
-brightness/readability polish. Breakable barricades are roadmap, not immediate backlog. After
-that, start M6 (menus, special orc types, boss round, high score).
+Recommended next step: **M6 — Map fixes & quick feel wins** (prop collision, move the
+shrine/table, shrink orcs ~15–20%, door-open animation). Then M7 sprint/stamina and M8 Zombies-style
+breakable+repairable barricades. Full prioritized backlog (M6 → M11) with file pointers is in
+`AGENTS.md`.
 
 ## What this is
 
