@@ -15,6 +15,8 @@ complete; M5 (map & atmosphere) is in progress.**
 - M2 round/wave system is implemented.
 - M3 foundation is implemented: weapon slots, Staff purchase/refill, quick melee fallback, Fire
   Staff projectile bolts, HUD hit marker, and reload HUD feedback.
+- Quick melee now has a visible first-person lunge/tilt animation blended into WeaponHolder
+  sway/bob.
 - Added procedural weapon recoil/reload animations.
 - Added Throwing Axe (gravity projectile) as weapon_3 and placed it on the wall in Arena.tscn.
 - Added Ammo Refill interactable (`buyable_ammo.gd`).

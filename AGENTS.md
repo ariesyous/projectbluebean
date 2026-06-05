@@ -17,6 +17,8 @@ Completed and committed so far:
 - Added discrete round/wave system with round UI and between-round breather.
 - Added weapon slots: Crossbow on `1`, Staff on `2` once purchased.
 - Added quick melee on `V` so the player has a fallback when out of ammo.
+- Added a visible procedural quick-melee swing on `V` by blending a lunge/tilt into the first-person
+  weapon holder sway/bob.
 - Added Fire Staff projectile bolts.
 - Added HUD weapon feedback: hit marker on confirmed damage and `Reloading` text during reload.
 - Added procedural weapon recoil and reload animations using tweens.
@@ -68,6 +70,8 @@ Verified most recently:
 - Crossbow hit reduced enemy health `100 -> 55`.
 - Fire Staff uses projectile bolts and damages after travel.
 - Melee hit reduced enemy health `100 -> 45`.
+- Quick melee now starts a `0.28s` first-person holder lunge/tilt animation and recovers back
+  near idle; verified by runtime sampling of `WeaponHolder` position/rotation.
 - Crossbow reload HUD shows `Reloading`, then returns to ammo text.
 - Hit marker appears on confirmed Crossbow/projectile/melee damage and clears after its flash.
 - Weapon switching and Staff re-buy/refill work without duplicating slots.

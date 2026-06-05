@@ -17,6 +17,9 @@ extends CharacterBody3D
 @export var sway_lerp: float = 5.0
 @export var bob_frequency: float = 2.4
 @export var bob_amplitude: float = 0.06
+@export var melee_anim_duration: float = 0.28
+@export var melee_anim_lunge: float = 0.32
+@export var melee_anim_tilt_degrees: float = 18.0
 
 const STAMINA_SPEED_MULT := 1.35       ## Stamin-Up: faster movement
 const SPEED_COLA_RELOAD_MULT := 0.5    ## Speed Cola: reload_time multiplier (<1 = faster)
@@ -35,6 +38,7 @@ var _weapon_slots: Array[Node3D] = []
 var _weapon_scene_paths: Array[String] = []
 var _current_interactable = null
 var _melee_timer: float = 0.0
+var _melee_anim_time: float = 0.0
 var _mouse_input: Vector2 = Vector2.ZERO
 var _bob_time: float = 0.0
 
@@ -146,6 +150,7 @@ func _try_melee() -> void:
 	if _melee_timer > 0.0:
 		return
 	_melee_timer = melee_cooldown
+	_start_melee_animation()
 	var from := camera.global_position
 	var to := from + (-camera.global_transform.basis.z) * melee_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
@@ -164,6 +169,9 @@ func _try_melee() -> void:
 		_spawn_melee_feedback(point, true)
 	else:
 		_spawn_melee_feedback(point, false)
+
+func _start_melee_animation() -> void:
+	_melee_anim_time = melee_anim_duration
 
 func _spawn_melee_feedback(pos: Vector3, hit_enemy: bool) -> void:
 	var light := OmniLight3D.new()
@@ -184,6 +192,7 @@ func _physics_process(delta: float) -> void:
 	if GameState.is_game_over:
 		return
 	_melee_timer = maxf(_melee_timer - delta, 0.0)
+	_melee_anim_time = maxf(_melee_anim_time - delta, 0.0)
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	if Input.is_action_just_pressed("jump") and is_on_floor():
@@ -214,8 +223,23 @@ func _update_weapon_visuals(delta: float) -> void:
 		_mouse_input.x * sway_amount * 0.001,
 		0.0
 	)
+	var melee_offset := Vector3.ZERO
+	var melee_rotation := Vector3.ZERO
+	if _melee_anim_time > 0.0:
+		var progress := 1.0 - (_melee_anim_time / maxf(melee_anim_duration, 0.01))
+		var attack := sin(clampf(progress / 0.42, 0.0, 1.0) * PI * 0.5)
+		var recover := 1.0 - clampf((progress - 0.42) / 0.58, 0.0, 1.0)
+		var weight := attack * recover
+		melee_offset = Vector3(-0.14, 0.08, -melee_anim_lunge) * weight
+		melee_rotation = Vector3(
+			deg_to_rad(-8.0),
+			deg_to_rad(-12.0),
+			deg_to_rad(-melee_anim_tilt_degrees)
+		) * weight
+	sway_target_rotation += melee_rotation
 	weapon_holder.rotation.x = lerp_angle(weapon_holder.rotation.x, sway_target_rotation.x, delta * sway_lerp)
 	weapon_holder.rotation.y = lerp_angle(weapon_holder.rotation.y, sway_target_rotation.y, delta * sway_lerp)
+	weapon_holder.rotation.z = lerp_angle(weapon_holder.rotation.z, sway_target_rotation.z, delta * sway_lerp)
 	_mouse_input = Vector2.ZERO # Reset for next frame
 	
 	# 2. Weapon Bob (Movement)
@@ -231,8 +255,9 @@ func _update_weapon_visuals(delta: float) -> void:
 		0.0
 	)
 	
-	var target_pos := _initial_weapon_holder_pos + bob_offset
-	weapon_holder.position = weapon_holder.position.lerp(target_pos, delta * 10.0)
+	var target_pos := _initial_weapon_holder_pos + bob_offset + melee_offset
+	var visual_lerp := 18.0 if _melee_anim_time > 0.0 else 10.0
+	weapon_holder.position = weapon_holder.position.lerp(target_pos, delta * visual_lerp)
 
 func _handle_weapon_input() -> void:
 	if _current_weapon == null:
