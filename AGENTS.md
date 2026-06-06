@@ -394,19 +394,29 @@ committed checkpoints.
 - Main menu + pause menu exist; single-threaded Web build live on GitHub Pages.
 
 ### Open / prioritized next steps
-1. **Verify the rebuilt web build in a browser** (the export was validated only by exit code + pck
-   growth, not a live smoke test). Hard-refresh / cache-bust
-   `https://ariesyous.github.io/projectbluebean/?v=<sha>`; confirm the menu loads, a round plays,
-   bosses/shamans/brutes appear **holding their weapons**, and combat audio works. If it's gray,
-   open the browser console for a missing `res://` resource → add it to `export_presets.cfg`'s
-   `export_files` and re-export (the list is hand-curated because `load(KIT + "...")` string-concat
-   loads are invisible to Godot's dependency scanner).
-2. **More web performance if still laggy (single WASM core → CPU-bound).** The biggest remaining
-   win is **draw-call reduction**: `arena.gd._build_dungeon` spawns hundreds of individual floor/
-   wall/ceiling `MeshInstance3D` tiles, each its own draw call. Convert the repeated tiles to
-   `MultiMeshInstance3D` (keep the separate static colliders under `NavigationRegion3D` so the
-   navmesh bake is unaffected). Secondary: lower `physics_ticks_per_second` on web (nav/avoidance
-   is CPU-heavy), or cap `max_alive`.
+1. **Verify the rebuilt web build in a browser** (exports were validated only by exit code + pck
+   growth + in-editor checks, never a live web smoke test). Latest deployed build is **sha
+   `e773373`** (MultiMesh + HUD-glyph fix). Hard-refresh / cache-bust
+   `https://ariesyous.github.io/projectbluebean/?v=e773373`; confirm: menu loads, a round plays,
+   bosses/shamans/brutes appear **holding their weapons**, combat audio works, the **crosshair is a
+   clean `+`** (not a tofu box), brightness is normal, and it feels **smoother** than before the
+   MultiMesh pass. If gray, open the browser console for a missing `res://` resource → add it to
+   `export_presets.cfg`'s `export_files` and re-export (the list is hand-curated because
+   `load(KIT + "...")` string-concat loads are invisible to Godot's dependency scanner).
+2. **More web performance if STILL laggy after the MultiMesh pass** (single WASM core → CPU-bound;
+   GPU cuts already proven useless). The dungeon draw-call win is done (~400 → ~103 draw calls).
+   Remaining CPU levers, roughly in order:
+   - **Lower `physics/common/physics_ticks_per_second` on web** (e.g. 60→30 via a `.web` override).
+     Enemy nav + `NavigationAgent3D` avoidance (RVO) runs every physics tick and is heavy. Watch
+     player feel — player movement/aim is partly physics-tick-bound.
+   - **Disable `NavigationAgent3D` avoidance (RVO)** on the enemies (`avoidance_enabled=false` in
+     the enemy scenes / `_ready`): removes per-agent RVO each frame. Enemies may clump more.
+   - **Stop shipping the `_mcp_game_helper` autoload in the web build.** It's editor tooling
+     (`addons/godot_ai/runtime/game_helper.gd`, registered as an autoload in `project.godot`) and
+     has no purpose in a released game — likely idle, but it shouldn't ship. Don't remove the
+     autoload outright (the editor MCP needs it); gate its work on `not OS.has_feature("web")` or
+     exclude it from the Web preset.
+   - **MultiMesh the 32 torch models** too (smaller win), or cap `max_alive` enemies.
 3. **Enemy AI / pathing.** Orcs still snag on corners — tune `orc.gd` + `NavigationAgent3D` (agent
    radius, avoidance, path postprocessing/smoothing).
 4. **Map / level design.** The procedural dungeon in `arena.gd` is functional but basic — vary
@@ -437,10 +447,13 @@ committed checkpoints.
 ### Best Next Step
 
 See **"Open / prioritized next steps"** under the `## Best Next Step` section above — that is the
-authoritative, up-to-date roadmap. In short: (1) browser-verify the freshly rebuilt web build,
-(2) draw-call reduction (MultiMesh) if web is still laggy, then (3) enemy AI/pathing, map design,
-and more content. The enemy animation/weapon/grip/hitbox fixes and the web perf + export work are
-all **done and committed** this session — don't redo them unless playtest feedback asks.
+authoritative, up-to-date roadmap. In short: (1) browser-verify the latest web build (sha
+`e773373`); (2) if it's still laggy, the dungeon MultiMesh draw-call pass is already done, so move
+to the remaining CPU levers (physics tick on web, disable enemy RVO avoidance, stop shipping the
+`_mcp_game_helper` autoload); then (3) enemy AI/pathing, map design, and more content. The enemy
+animation/weapon/grip/hitbox fixes, the HUD tofu-glyph fix, the MultiMesh perf pass, and the web
+export repair are all **done and committed** this session — don't redo them unless playtest
+feedback asks.
 
 ## User Preferences / Context
 
