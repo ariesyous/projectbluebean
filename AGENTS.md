@@ -38,6 +38,29 @@ Completed and committed so far:
     capsule topped out at exactly y=2.0, so the head + hat were above the collider. Resized the
     `Shaman.tscn` capsule to radius 0.55 / height 2.7 / offset y 1.35; raycasts now register from
     0.8 m up through 2.6 m (head + hat). Verified via `game_eval`.
+- **Web performance pass + export-list repair (2026-06-05):**
+  - The web build (GitHub Pages, single-threaded WASM, 1 core) lagged. Already on the right
+    renderer (`gl_compatibility`) with no glow/SSAO/SSR/shadows. Added **web-only** optimizations
+    that leave the desktop/editor build untouched (gated on `OS.has_feature("web")` and a
+    `.web` ProjectSettings override):
+    - `rendering/scaling_3d/scale.web = 0.75` (renders ~56% of the pixels — big fill-rate win).
+    - `arena.gd` thins dynamic torch lights to **half** on web (keeps every emissive torch model)
+      and drops omni range 12→9; ambient bumped 0.85→1.0 on web to keep the dungeon readable.
+    - Desktop verified unchanged: 32 omni lights, render scale 1.0.
+  - **Repaired the badly-stale Web export file list.** `export_presets.cfg` used a hand-curated
+    `export_files` list (because `load(KIT + "...")` string-concat loads aren't followed by Godot's
+    dependency scanner) that predated M5-polish/M8/M10/M11. It was missing the **main scene
+    (`MainMenu.tscn`)**, `PauseMenu.tscn`, all M10 enemies (Boss/Brute/Shaman/ShamanFireball +
+    scripts + Viking/Knight/Wizard models), combat audio (`orc_*`/`player_hurt.wav`), and
+    runtime-loaded dungeon pieces (`ceiling_tile`, `wall_corner`, `wall_doorway`,
+    `wall_archedwindow_open`). A rebuild without these would have gray-screened. Found every
+    runtime `load()`/`preload()` target by grep and added the missing ones.
+  - **Rebuilt + committed the GitHub Pages build** via headless CLI export
+    (`Godot_v4.6.3-stable_win64_console.exe --headless --path . --export-release "Web"` to
+    `../docs/index.html`). `index.pck` grew 3.7MB→4.84MB (M10 content now present);
+    `GODOT_THREADS_ENABLED = false` preserved. Godot editor binary lives at
+    `C:\Users\sith\Code\projectgencom\Godot_v4.6.3-stable_win64.exe`; templates `4.6.3.stable`
+    are installed.
 - **M10 Polish Pass (HUD, Audio, Vaulting, Bosses)**:
   - Replaced the enemy models with `Ultimate Animated Character Pack`.
   - Added a Boss enemy (Viking Warlord, `boss.gd`) that has 2000 HP and spawns minions when hit.
@@ -344,65 +367,47 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-**Current resume point, superseding any stale roadmap text below:** M8 barricades are done and
-user-approved, and the M9 Axe rework slice is done and verified. The repo is dirty and these changes
-are not committed yet. In the next thread, first inspect `git status`, review the uncommitted diff,
-and ideally commit a verified checkpoint. After that, continue M9 with the **real wall-buy model
-pass**: replace the Staff and Axe blue-box wall-buy panels in `Arena.tscn`/`arena.gd` setup with
-staged KayKit weapon model displays. Do not redo barricades or the Axe rework unless playtest
-feedback asks for it.
+**Current resume point:** M1–M10 are done and committed, plus a **main menu + pause menu**
+(`scenes/ui/MainMenu.tscn` is now the project's main scene; `PauseMenu.tscn`). The 2026-06-05
+session fixed enemy animations, equipped + posed enemy weapons, removed the death-slide, fixed the
+mage headshot hitbox, added a **web performance pass**, repaired the stale Web export file list, and
+**rebuilt the GitHub Pages build** (see Completed list for all detail). Work **milestone by
+milestone** — the user explicitly does NOT want everything one-shotted, and prefers verified,
+committed checkpoints.
 
-M5 (modular dungeon + atmosphere + map/feel polish) is **done and user-approved**. The roadmap
-below is reorganized around **playtest feedback from 2026-06-05** (verbatim notes at the end). Work
-it **milestone by milestone** — the user explicitly does NOT want everything one-shotted. **M6 is
-done** (see Completed list); next up is **M8 → M11**; confirm scope with the user before each.
+### Done (detail in the Completed list above)
+- **M1–M5:** core loop/economy, weapon arsenal, Mystery Box / perks / Pack-a-Punch, modular KayKit
+  dungeon + atmosphere + map polish.
+- **M6** map fixes & feel, **M7** sprint/stamina, **M8** breakable/repairable barricades + entry
+  points, **M9** axe rework + real KayKit wall-buy models, **M10** HUD/audio/barricade-vaulting +
+  **boss & enemy types** (Boss/Viking, Shaman/Wizard caster, Brute/Knight).
+- Enemy animation/weapon/grip/hitbox fixes + web perf + export repair (this session).
+- Main menu + pause menu exist; single-threaded Web build live on GitHub Pages.
 
-### M6 — Map fixes & quick feel wins (DONE — see Completed list)
-### M7 — Sprint / stamina (DONE — see Completed list)
+### Open / prioritized next steps
+1. **Verify the rebuilt web build in a browser** (the export was validated only by exit code + pck
+   growth, not a live smoke test). Hard-refresh / cache-bust
+   `https://ariesyous.github.io/projectbluebean/?v=<sha>`; confirm the menu loads, a round plays,
+   bosses/shamans/brutes appear **holding their weapons**, and combat audio works. If it's gray,
+   open the browser console for a missing `res://` resource → add it to `export_presets.cfg`'s
+   `export_files` and re-export (the list is hand-curated because `load(KIT + "...")` string-concat
+   loads are invisible to Godot's dependency scanner).
+2. **More web performance if still laggy (single WASM core → CPU-bound).** The biggest remaining
+   win is **draw-call reduction**: `arena.gd._build_dungeon` spawns hundreds of individual floor/
+   wall/ceiling `MeshInstance3D` tiles, each its own draw call. Convert the repeated tiles to
+   `MultiMeshInstance3D` (keep the separate static colliders under `NavigationRegion3D` so the
+   navmesh bake is unaffected). Secondary: lower `physics_ticks_per_second` on web (nav/avoidance
+   is CPU-heavy), or cap `max_alive`.
+3. **Enemy AI / pathing.** Orcs still snag on corners — tune `orc.gd` + `NavigationAgent3D` (agent
+   radius, avoidance, path postprocessing/smoothing).
+4. **Map / level design.** The procedural dungeon in `arena.gd` is functional but basic — vary
+   rooms, sightlines, and flow, or hand-author a stronger layout.
+5. **Content & meta.** More weapons (only Fire Staff is really worth buying today), more enemy
+   variety, a settings menu, persistent high score.
 
-### M8 — Barricades & entry points (⭐ NEXT — Zombies signature; medium–large, high value)
-- Orcs currently "drop in" at `SpawnPoints` markers (`Arena.tscn`, spawned by `arena.gd._spawn_orc`),
-  which feels jarring. Replace with fixed **entry points** — barricaded windows / wall cavities the
-  orcs must **break through**. Kit has `barrier*.gltf`, `wall_archedwindow_gated`, `wall_window_*`,
-  `wall_broken`, `barrier_corner`.
-- The player can **repair** a barricade by interacting (rebuild boards, small point reward, à la
-  CoD Zombies) — the core defensive loop for rounds ~1–15. Needs barricade health, an orc
-  tear-down animation/SFX, board-by-board repair, and a spawner rework in `arena.gd` that pulls
-  orcs from entry points instead of the current cap-limited markers.
-- **Confirm scope with the user before building:** how many entry points, repair cost/reward,
-  whether orcs attack barricades or just path through once broken, and how entry points relate to
-  the round spawner. This is the biggest behavioural change since M5 — design first, then build in
-  small verifiable pieces (entry-point geometry → orc break behaviour → player repair → spawner
-  rework).
-
-### M9 — Weapon overhaul & models (medium)
-- **Axe rework** (`scenes/weapons/Axe.tscn` + `AxeProjectile.tscn` + axe weapon data/script):
-  hold it **upright** (currently flat against the POV), throw with a **natural overhand arc**
-  (currently flung sideways), and make it a **one-shot kill** — justified by a **slow reload** and
-  a **10-axe capacity** that forces looping back to the start room for ammo. Rebalance so the axe
-  is a real alternative; right now there's no reason not to buy the Fire Staff.
-- **Real wall-buy models.** The Staff and Axe wall-buys are **blue boxes** (emissive
-  `StandardMaterial3D` panels in `Arena.tscn`). Replace with the staged KayKit weapon models.
-- Fire Staff is "machine-gun" fast — fun; leave as-is for now, add more weapons later.
-
-### M10 — Enemy AI & map redesign (large; later)
-- **Orc pathing** sticks on corners and is basic. Improve nav: agent radius/avoidance, path
-  smoothing, corner handling, maybe local steering (`orc.gd` + `NavigationAgent3D` config).
-- **Redesign the initial dungeon** to be less basic / more natural — better layout, varied rooms,
-  sightlines. Hand-author or substantially improve the procedural builder in `arena.gd`.
-
-### M11 — Meta & game feel (the old M6)
-- Main menu, pause, settings, special orc types (ranged shaman, heavy brute), a boss round,
-  downed/revive, persistent high score. (Decided earlier: solo death stays an instant game-over
-  for now — no revive this pass.)
-
-### Still-open earlier items
-- Web export browser smoke test: hard-refresh / cache-bust
-  `https://ariesyous.github.io/projectbluebean/?v=<sha>` and confirm it isn't a gray screen; if it
-  is, grab the browser console error and patch the Web preset.
-- Loop-feel tuning knobs (revisit alongside M8): door cost (`buyable_door.gd` = 1000) and the
-  `arena.gd` spawn exports (`spawn_interval`, `max_alive`, `enemies_added_per_round`, health/speed
-  scales).
+### Loop-feel tuning knobs (revisit anytime)
+- Door cost (`buyable_door.gd`) and the `arena.gd` spawn exports (`spawn_interval`, `max_alive`,
+  `enemies_added_per_round`, `health_scale_per_round`, `speed_scale_per_round`).
 
 ### Raw playtest feedback — 2026-06-05 (verbatim intent, so nothing's lost)
 - Loved it overall ("great, very good"). Wants a **Sprint** (Shift → speed boost → rest/recover).
@@ -422,17 +427,11 @@ done** (see Completed list); next up is **M8 → M11**; confirm scope with the u
 
 ### Best Next Step
 
-**Current resume point:** The post-M10 enemy fix pass is done and committed — enemy animations
-(boss/brute walk, mage cast) now play, melee/caster enemies hold real weapons on the `Fist.R` bone,
-the death-slide is gone, and the mage headshot hitbox covers the head/hat. Wall-buy blue-box
-placeholders were already replaced in an earlier pass.
-
-For the next Coding Agent session, consider focusing on:
-- Fine-tuning the equipped-weapon grip angles (`WEAPON_GRIP_POS/ROT/SCALE` in each enemy
-  `_equip_weapon()`) — needs the game window focused for a fresh screenshot.
-- Adding new weapons / more enemy varieties, or refining the AI navigation (orcs still snag on
-  corners).
-- Expanding the arena flow further or improving the procedural level generation.
+See **"Open / prioritized next steps"** under the `## Best Next Step` section above — that is the
+authoritative, up-to-date roadmap. In short: (1) browser-verify the freshly rebuilt web build,
+(2) draw-call reduction (MultiMesh) if web is still laggy, then (3) enemy AI/pathing, map design,
+and more content. The enemy animation/weapon/grip/hitbox fixes and the web perf + export work are
+all **done and committed** this session — don't redo them unless playtest feedback asks.
 
 ## User Preferences / Context
 

@@ -34,6 +34,9 @@ var _is_boss_round: bool = false
 var _floor_cells: Dictionary = {}
 var _entry_points: Array = []
 var _prop_collision: StaticBody3D = null
+# Web runs single-threaded on GitHub Pages, so thin out dynamic lights there.
+var _web: bool = OS.has_feature("web")
+var _torch_n: int = 0
 
 func _ready() -> void:
 	randomize()
@@ -127,11 +130,16 @@ func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
 	props.add_child(torch)
 	torch.global_position = wall_pos + inner * 0.45 + Vector3(0.0, 2.3, 0.0)
 	torch.look_at(torch.global_position + inner, Vector3.UP)
+	_torch_n += 1
+	# On the single-threaded web build, keep every torch model (the emissive
+	# flame still reads) but only give half of them a real dynamic light.
+	if _web and _torch_n % 2 == 0:
+		return
 	var light := OmniLight3D.new()
 	light.set_script(load("res://scripts/fx/torch_flicker.gd"))
 	light.light_color = Color(1.0, 0.6, 0.25)
 	light.light_energy = 4.2
-	light.omni_range = 12.0
+	light.omni_range = 9.0 if _web else 12.0
 	light.shadow_enabled = false
 	props.add_child(light)
 	light.global_position = wall_pos + inner * 0.6 + Vector3(0.0, 2.7, 0.0)
@@ -247,7 +255,8 @@ func _tune_environment() -> void:
 	if we == null or we.environment == null:
 		return
 	var env := we.environment
-	env.ambient_light_energy = 0.85
+	# Brighter ambient on web compensates for the thinned-out torch lights.
+	env.ambient_light_energy = 1.0 if _web else 0.85
 	env.fog_density = 0.013
 
 func _place_dungeon_props(props: Node3D) -> void:
