@@ -89,7 +89,11 @@ func try_fire() -> void:
 		var hit_point := _do_hitscan()
 		_spawn_tracer(global_position, hit_point)
 	get_tree().create_timer(1.0 / maxf(data.fire_rate * _fire_rate_mult(), 0.01)).timeout.connect(
-		func() -> void: _can_fire = true)
+		func() -> void: 
+			_can_fire = true
+			if _in_mag <= 0 and _reserve > 0 and not _reloading:
+				reload()
+	)
 
 func _spawn_projectile() -> void:
 	var cam := get_viewport().get_camera_3d()

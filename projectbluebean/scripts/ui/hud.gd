@@ -22,12 +22,19 @@ var _tracked_weapon: Node = null
 var _last_ammo := Vector2i.ZERO
 var _hit_marker_time: float = 0.0
 var _repair_progress_label: Label = null
+var _boss_health_bar: ProgressBar = null
+
+const PAUSE_SCENE := preload("res://scenes/ui/PauseMenu.tscn")
 
 func _ready() -> void:
+	var pause_menu := PAUSE_SCENE.instantiate()
+	add_child(pause_menu)
+	_apply_hud_overhaul()
 	game_over.visible = false
 	prompt_label.visible = false
 	hit_marker.visible = false
 	_create_repair_progress_label()
+	_create_boss_health_bar()
 	Economy.points_changed.connect(_on_points_changed)
 	GameState.player_died.connect(_on_player_died)
 	GameState.round_changed.connect(_on_round_changed)
@@ -105,6 +112,149 @@ func _update_repair_progress() -> void:
 		_repair_progress_label.text = "◕"
 	else:
 		_repair_progress_label.text = "●"
+
+func _apply_hud_overhaul() -> void:
+	# Add shadows and outlines to Labels
+	_style_label(points_label, 32, Color(1, 0.85, 0.3)) # Gold points
+	_style_label(round_label, 36, Color(1, 1, 1))
+	_style_label(enemies_label, 24, Color(0.85, 0.85, 0.85))
+	_style_label(ammo_label, 52, Color(1, 1, 1))
+	_style_label(perks_label, 20, Color(0.6, 0.9, 1.0))
+	_style_label(prompt_label, 32, Color(1, 0.95, 0.6))
+	
+	var ch = $Root/Crosshair as Label
+	ch.text = "⊹"
+	ch.offset_left = -20
+	ch.offset_top = -20
+	ch.offset_right = 20
+	ch.offset_bottom = 20
+	_style_label(ch, 36, Color(1, 1, 1, 0.8))
+
+	hit_marker.text = "✕"
+	hit_marker.offset_left = -20
+	hit_marker.offset_top = -20
+	hit_marker.offset_right = 20
+	hit_marker.offset_bottom = 20
+	_style_label(hit_marker, 42, Color(1, 0.15, 0.1))
+
+	# Layout Points/Round (Top Left)
+	points_label.anchor_left = 0
+	points_label.anchor_right = 0
+	points_label.offset_left = 40
+	points_label.offset_top = 30
+	round_label.anchor_left = 0
+	round_label.anchor_right = 0
+	round_label.offset_left = 40
+	round_label.offset_top = 80
+	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	enemies_label.anchor_left = 0
+	enemies_label.anchor_right = 0
+	enemies_label.offset_left = 40
+	enemies_label.offset_top = 130
+	enemies_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+	# Ammo Label (Bottom Right)
+	ammo_label.offset_left = -400
+	ammo_label.offset_right = -50
+	ammo_label.offset_bottom = -50
+
+	# Perks Label (Above Ammo)
+	perks_label.anchor_left = 1.0
+	perks_label.anchor_right = 1.0
+	perks_label.offset_left = -500
+	perks_label.offset_right = -50
+	perks_label.offset_top = -140
+	perks_label.offset_bottom = -110
+	perks_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	
+	# Health and Stamina Bars (Bottom Left)
+	health_bar.anchor_top = 1.0
+	health_bar.anchor_bottom = 1.0
+	health_bar.offset_left = 50
+	health_bar.offset_top = -100
+	health_bar.offset_right = 450
+	health_bar.offset_bottom = -70
+	_style_bar(health_bar, Color(0.2, 0.85, 0.2))
+
+	stamina_bar.anchor_top = 1.0
+	stamina_bar.anchor_bottom = 1.0
+	stamina_bar.offset_left = 50
+	stamina_bar.offset_top = -60
+	stamina_bar.offset_right = 350
+	stamina_bar.offset_bottom = -40
+	stamina_bar.modulate = Color(1, 1, 1, 1) # reset modulate
+	_style_bar(stamina_bar, Color(0.2, 0.75, 0.95))
+
+func _style_label(lbl: Label, size: int, color: Color) -> void:
+	if lbl == null: return
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	lbl.add_theme_constant_override("outline_size", 5)
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	lbl.add_theme_constant_override("shadow_offset_x", 4)
+	lbl.add_theme_constant_override("shadow_offset_y", 4)
+
+func _style_bar(bar: ProgressBar, fill_color: Color) -> void:
+	if bar == null: return
+	bar.show_percentage = true # Enable percentage text over health/stamina
+	var fill = StyleBoxFlat.new()
+	fill.bg_color = fill_color
+	fill.corner_radius_top_left = 4
+	fill.corner_radius_top_right = 4
+	fill.corner_radius_bottom_left = 4
+	fill.corner_radius_bottom_right = 4
+	fill.border_width_left = 2
+	fill.border_width_top = 2
+	fill.border_width_right = 2
+	fill.border_width_bottom = 2
+	fill.border_color = Color(1,1,1,0.2)
+	bar.add_theme_stylebox_override("fill", fill)
+
+	var bg = StyleBoxFlat.new()
+	bg.bg_color = Color(0.1, 0.1, 0.1, 0.8)
+	bg.corner_radius_top_left = 4
+	bg.corner_radius_top_right = 4
+	bg.corner_radius_bottom_left = 4
+	bg.corner_radius_bottom_right = 4
+	bar.add_theme_stylebox_override("background", bg)
+
+func _create_boss_health_bar() -> void:
+	_boss_health_bar = ProgressBar.new()
+	_boss_health_bar.name = "BossHealthBar"
+	_boss_health_bar.visible = false
+	_boss_health_bar.anchor_left = 0.2
+	_boss_health_bar.anchor_right = 0.8
+	_boss_health_bar.anchor_top = 0.05
+	_boss_health_bar.anchor_bottom = 0.05
+	_boss_health_bar.offset_bottom = 30.0
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.8, 0.1, 0.1)
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4
+	sb.corner_radius_bottom_right = 4
+	_boss_health_bar.add_theme_stylebox_override("fill", sb)
+	var bg = StyleBoxFlat.new()
+	bg.bg_color = Color(0.1, 0.1, 0.1, 0.8)
+	bg.corner_radius_top_left = 4
+	bg.corner_radius_top_right = 4
+	bg.corner_radius_bottom_left = 4
+	bg.corner_radius_bottom_right = 4
+	_boss_health_bar.add_theme_stylebox_override("background", bg)
+	_boss_health_bar.show_percentage = false
+	$Root.add_child(_boss_health_bar)
+
+func update_boss_health(current: float, maximum: float) -> void:
+	if _boss_health_bar == null:
+		return
+	_boss_health_bar.max_value = maximum
+	_boss_health_bar.value = current
+	_boss_health_bar.visible = true
+
+func hide_boss_health() -> void:
+	if _boss_health_bar:
+		_boss_health_bar.visible = false
 
 func _on_health_changed(current: float, maximum: float) -> void:
 	health_bar.max_value = maximum

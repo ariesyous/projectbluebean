@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://csihefvu1orxy"]
+
+[ext_resource type="PackedScene" uid="uid://73jqh8w0qxwx" path="res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/floor_tile_large.gltf" id="1_mqcpr"]
+[ext_resource type="PackedScene" uid="uid://dp2i8ld6xj7q1" path="res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/floor_tile_small.gltf" id="2_tqe8v"]
+[ext_resource type="PackedScene" uid="uid://ditx2tcs35r1w" path="res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/wall.gltf" id="3_tv03h"]
+[ext_resource type="PackedScene" uid="uid://cw5bhw0ylrgbm" path="res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/wall_doorway.gltf" id="4_gv10b"]
+
+[node name="Scratch" type="Node3D" unique_id=1611517343]
+
+[node name="FloorLarge" parent="." unique_id=1649688318 instance=ExtResource("1_mqcpr")]
+
+[node name="FloorSmall" parent="." unique_id=2092336892 instance=ExtResource("2_tqe8v")]
+
+[node name="Wall" parent="." unique_id=992874981 instance=ExtResource("3_tv03h")]
+
+[node name="WallDoorway" parent="." unique_id=52102852 instance=ExtResource("4_gv10b")]

@@ -12,6 +12,23 @@ var enemies_remaining: int = 0
 var is_between_round: bool = false
 var round_countdown: float = 0.0
 var is_game_over: bool = false
+var high_score_round: int = 0
+
+const SAVE_PATH := "user://save.dat"
+
+func _ready() -> void:
+	_load_high_score()
+
+func _load_high_score() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+		if file:
+			high_score_round = file.get_32()
+
+func _save_high_score() -> void:
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file:
+		file.store_32(high_score_round)
 
 func reset() -> void:
 	current_round = 0
@@ -26,6 +43,9 @@ func notify_player_died() -> void:
 	if is_game_over:
 		return
 	is_game_over = true
+	if current_round > high_score_round:
+		high_score_round = current_round
+		_save_high_score()
 	player_died.emit()
 
 func notify_hit_confirmed() -> void:

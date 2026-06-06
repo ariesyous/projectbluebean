@@ -6,6 +6,7 @@ class_name Orc
 const PUNCH_LEN := 0.75
 const DEATH_LEN := 2.0
 const BARRICADE_COLLISION_LAYER := 16
+const VAULT_DURATION := 0.65
 
 @export var max_health: float = 100.0
 @export var move_speed: float = 3.2
@@ -23,6 +24,13 @@ var _player: Node3D = null
 var _barricade_target: Node = null
 var _dead: bool = false
 var _current_anim: String = ""
+var _vaulting: bool = false
+var _vault_timer: float = 0.0
+var _vault_start_pos: Vector3 = Vector3.ZERO
+var _vault_end_pos: Vector3 = Vector3.ZERO
+var _attack_audio: AudioStreamPlayer3D
+var _hurt_audio: AudioStreamPlayer3D
+var _death_audio: AudioStreamPlayer3D
 
 @onready var nav_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var _anim: AnimationPlayer = $GoblinModel/AnimationPlayer
@@ -34,10 +42,22 @@ func _ready() -> void:
 	health = max_health
 	nav_agent.path_desired_distance = 0.5
 	nav_agent.target_desired_distance = attack_range * 0.75
-	for a in ["Idle", "Walk", "Run"]:
-		var clip := _anim.get_animation(a)
-		if clip != null:
+	for a in ["Idle", "Walking_A", "Running_A", "Walk", "Run"]:
+		if _anim.has_animation(a):
+			var clip := _anim.get_animation(a)
 			clip.loop_mode = Animation.LOOP_LINEAR
+	nav_agent.velocity_computed.connect(_on_velocity_computed)
+
+	_attack_audio = AudioStreamPlayer3D.new()
+	_attack_audio.stream = preload("res://assets/orc_attack.wav")
+	add_child(_attack_audio)
+	_hurt_audio = AudioStreamPlayer3D.new()
+	_hurt_audio.stream = preload("res://assets/orc_hurt.wav")
+	add_child(_hurt_audio)
+	_death_audio = AudioStreamPlayer3D.new()
+	_death_audio.stream = preload("res://assets/orc_death.wav")
+	add_child(_death_audio)
+
 	_acquire_player()
 	_play("Idle")
 
@@ -46,6 +66,9 @@ func _acquire_player() -> void:
 
 func assign_barricade(barricade: Node) -> void:
 	_barricade_target = barricade
+	if barricade.has_method("is_broken") and barricade.is_broken():
+		_start_vault(barricade)
+		_barricade_target = null
 
 ## Switch looping/idle animation, ignoring repeat calls for the same clip.
 func _play(anim: String) -> void:
@@ -64,6 +87,19 @@ func _play_oneshot(anim: String) -> void:
 func _physics_process(delta: float) -> void:
 	if _dead:
 		return
+		
+	if _vaulting:
+		_vault_timer -= delta
+		if _vault_timer <= 0.0:
+			_vaulting = false
+		else:
+			var t := 1.0 - (_vault_timer / VAULT_DURATION)
+			var current_pos := _vault_start_pos.lerp(_vault_end_pos, t)
+			current_pos.y += sin(t * PI) * 1.35
+			global_position = current_pos
+			_face_toward(_vault_end_pos)
+		return
+
 	_attack_timer -= delta
 	if GameState.is_game_over:
 		_play("Idle")
@@ -79,6 +115,7 @@ func _physics_process(delta: float) -> void:
 		if _barricade_target.has_method("is_broken") and not _barricade_target.is_broken():
 			_update_barricade_attack()
 			return
+		_start_vault(_barricade_target)
 		_barricade_target = null
 
 	nav_agent.target_position = _player.global_position
@@ -88,7 +125,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, move_speed)
 		_face_toward(_player.global_position)
 		if _attack_timer <= 0.0:
-			_attack()
+			_punch()
 		elif _attack_timer < attack_cooldown - PUNCH_LEN:
 			_play("Idle")
 	else:
@@ -101,7 +138,10 @@ func _physics_process(delta: float) -> void:
 		_face_toward(next_point)
 		_play("Run")
 
-	move_and_slide()
+	if nav_agent.avoidance_enabled:
+		nav_agent.velocity = velocity
+	else:
+		move_and_slide()
 
 func _update_barricade_attack() -> void:
 	var target_pos := global_position
@@ -126,25 +166,43 @@ func _update_barricade_attack() -> void:
 		velocity.z = dir.z * move_speed
 		_face_toward(next_point)
 		_play("Run")
-	move_and_slide()
+	if nav_agent.avoidance_enabled:
+		nav_agent.velocity = velocity
+	else:
+		move_and_slide()
 
 func _attack_barricade() -> void:
 	_attack_timer = barricade_attack_cooldown
 	_play_oneshot("Punch")
+	_attack_audio.play()
 	if _barricade_target != null and is_instance_valid(_barricade_target) \
 			and _barricade_target.has_method("damage_from_orc"):
 		_barricade_target.damage_from_orc(self)
+
+func _start_vault(barricade: Node) -> void:
+	_vaulting = true
+	_vault_timer = VAULT_DURATION
+	_play_oneshot("Jump")
+	_vault_start_pos = global_position
+	_vault_end_pos = barricade.global_position + (barricade.global_transform.basis.z * -1.6)
+	_vault_end_pos.y = global_position.y
+
+func _on_velocity_computed(safe_velocity: Vector3) -> void:
+	velocity = safe_velocity
+	move_and_slide()
 
 func _face_toward(target: Vector3) -> void:
 	var flat := Vector3(target.x - global_position.x, 0.0, target.z - global_position.z)
 	if flat.length() > 0.05:
 		look_at(global_position + flat, Vector3.UP)
 
-func _attack() -> void:
+func _punch() -> void:
 	_attack_timer = attack_cooldown
 	_play_oneshot("Punch")
-	if _player != null and _player.has_method("take_damage"):
-		_player.take_damage(attack_damage)
+	_attack_audio.play()
+	get_tree().create_timer(PUNCH_LEN * 0.5).timeout.connect(func():
+		if _player and is_instance_valid(_player) and _player.has_method("take_damage"):
+			_player.take_damage(attack_damage))
 
 func take_damage(amount: float, hit_position: Variant = null, hit_normal: Vector3 = Vector3.ZERO) -> void:
 	if _dead:
@@ -154,6 +212,7 @@ func take_damage(amount: float, hit_position: Variant = null, hit_normal: Vector
 		impact_pos = hit_position
 	_spawn_blood_burst(impact_pos, hit_normal)
 	health -= amount
+	_hurt_audio.play()
 	if health <= 0.0:
 		_die()
 
@@ -197,5 +256,6 @@ func _die() -> void:
 	velocity = Vector3.ZERO
 	_collision.disabled = true
 	_play_oneshot("Death")
+	_death_audio.play()
 	await get_tree().create_timer(DEATH_LEN).timeout
 	queue_free()

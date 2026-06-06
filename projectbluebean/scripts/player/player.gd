@@ -52,6 +52,7 @@ var _melee_timer: float = 0.0
 var _melee_anim_time: float = 0.0
 var _mouse_input: Vector2 = Vector2.ZERO
 var _bob_time: float = 0.0
+var _hurt_audio: AudioStreamPlayer
 
 var stamina: float
 var _exhausted: bool = false
@@ -75,6 +76,11 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_register_starting_weapons()
 	stamina = max_stamina
+	
+	_hurt_audio = AudioStreamPlayer.new()
+	_hurt_audio.stream = preload("res://assets/player_hurt.wav")
+	add_child(_hurt_audio)
+	
 	health_changed.emit(health, max_health)
 	stamina_changed.emit(stamina, max_stamina, _exhausted)
 	GameState.player_died.connect(_on_player_died)
@@ -85,9 +91,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		head.rotate_x(-event.relative.y * mouse_sensitivity)
 		head.rotation.x = clamp(head.rotation.x, deg_to_rad(-89.0), deg_to_rad(89.0))
-	if event.is_action_pressed("pause"):
-		_toggle_mouse()
-		return
+
 	if GameState.is_game_over:
 		return
 	if event.is_action_pressed("weapon_1"):
@@ -199,12 +203,6 @@ func _spawn_melee_feedback(pos: Vector3, hit_enemy: bool) -> void:
 	get_tree().current_scene.add_child(light)
 	light.global_position = pos
 	get_tree().create_timer(0.06).timeout.connect(light.queue_free)
-
-func _toggle_mouse() -> void:
-	if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	else:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
 	if GameState.is_game_over:
@@ -346,6 +344,7 @@ func take_damage(amount: float) -> void:
 	health -= amount
 	_time_since_damage = 0.0
 	health_changed.emit(health, max_health)
+	_hurt_audio.play()
 	if health <= 0.0:
 		health = 0.0
 		GameState.notify_player_died()

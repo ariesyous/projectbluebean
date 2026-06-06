@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://e1b2c3d4f5g6"]
+
+[ext_resource type="Script" path="res://scripts/enemies/brute.gd" id="1_brute"]
+[ext_resource type="PackedScene" path="res://assets/enemies/Knight_Male.gltf" id="2_knight"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_brute"]
+radius = 0.95
+height = 2.95
+
+[node name="Brute" type="CharacterBody3D"]
+collision_layer = 4
+script = ExtResource("1_brute")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.475, 0)
+shape = SubResource("CapsuleShape3D_brute")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_postprocessing = 1
+avoidance_enabled = true
+radius = 0.9
+neighbor_distance = 10.0
+
+[node name="Knight_Male" parent="." instance=ExtResource("2_knight")]
+transform = Transform3D(-1.2, 0, -1.04907e-07, 0, 1.2, 0, 1.04907e-07, 0, -1.2, 0, 0, 0)

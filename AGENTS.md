@@ -8,11 +8,19 @@ This repo is a Godot 4.6.3 first-person, round-based fantasy survival shooter. T
 
 The game is playable through the main scene, `res://scenes/world/Arena.tscn`.
 
-## Uncommitted work since `22e2898`
+## Uncommitted work
 
-The current worktree contains the latest playable changes from this thread. **These are verified but
-not committed yet**:
+There is no uncommitted work. The repository is clean as of the latest commit.
 
+Completed and committed so far:
+
+- **M10 Polish Pass (HUD, Audio, Vaulting, Bosses)**:
+  - Replaced the enemy models with `Ultimate Animated Character Pack`.
+  - Added a Boss enemy (Viking Warlord, `boss.gd`) that has 2000 HP and spawns minions when hit.
+  - Added a Shaman enemy (Wizard) that shoots fireballs.
+  - Revamped the HUD with crisp outlines, shadows, and better scaling for an intense shooter vibe.
+  - Synthesized and added spatialized combat sound effects (`orc_attack.wav`, `orc_hurt.wav`, `orc_death.wav`, `player_hurt.wav`) natively into all enemy/player scripts.
+  - Implemented dynamic Barricade Vaulting animations. When a barricade breaks, enemies leap over the window sill into the arena using a sine wave interpolation and the `Jump` animation.
 - **M8 barricades / entry points are done and user-approved.**
   - Added `scripts/interactables/barricade.gd` (+ `.uid`), created dynamically from
     `arena.gd`.
@@ -50,25 +58,6 @@ not committed yet**:
 - **Important typo fixed:** a stray `ipp` accidentally prefixed the `var hold_target: bool = ...`
   line in `player.gd`, causing `Unexpected identifier "ipp" in class body` on Play. It has been
   removed and the game launched successfully afterward.
-
-Current modified tracked files:
-
-- `projectbluebean/scripts/interactables/barricade.gd` (new, untracked)
-- `projectbluebean/scripts/interactables/barricade.gd.uid` (new, untracked)
-- `projectbluebean/scripts/systems/arena.gd`
-- `projectbluebean/scripts/enemies/orc.gd`
-- `projectbluebean/scripts/player/player.gd`
-- `projectbluebean/scripts/ui/hud.gd`
-- `projectbluebean/resources/weapons/axe.tres`
-- `projectbluebean/scenes/weapons/Axe.tscn`
-- `projectbluebean/scripts/weapons/axe.gd`
-- `projectbluebean/scripts/weapons/axe_projectile.gd`
-
-Still-untracked KayKit extras remain on disk from earlier (`Assets/fbx*`, `Assets/obj`, `Samples`,
-URLs, `contents.png*`) plus `projectbluebean/scenes/world/_scratch_measure.tscn`. These were not
-created by the latest work and should not be accidentally committed unless intentionally cleaned up.
-
-Completed and committed so far:
 
 - Core loop, economy, interactables, wall-buy Staff, buyable door, player health, and HUD.
 - Imported goblin/orc enemy model with animation.
@@ -406,6 +395,15 @@ done** (see Completed list); next up is **M8 → M11**; confirm scope with the u
   **slow reload**, **capacity 10** (loop back for ammo). Hard to justify over the Fire Staff today.
 - **Fire Staff** is basically a machine gun right now — fun, fine for now; more weapons later.
 - Process note: **don't one-shot everything** — work systematically in achievable milestones.
+
+### Best Next Step
+
+**Current resume point:** The M10 polish pass (HUD overhaul, audio pass, barricade vaulting animations, and boss encounters) has been successfully completed and committed. The backlog of polish items from the previous playtest has been cleared.
+
+For the next Coding Agent session, consider focusing on:
+- Adding new weapons and replacing the blue-box placeholders for the Staff/Axe wall-buys with actual models.
+- Adding additional enemy varieties or refining the AI navigation.
+- Expanding the arena flow further or improving the procedural level generation.
 
 ## User Preferences / Context
 

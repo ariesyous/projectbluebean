@@ -3,6 +3,9 @@ extends Node3D
 ## rounds with short breathers between them.
 
 const ORC_SCENE := preload("res://scenes/enemies/Orc.tscn")
+const SHAMAN_SCENE := preload("res://scenes/enemies/Shaman.tscn")
+const BRUTE_SCENE := preload("res://scenes/enemies/Brute.tscn")
+const BOSS_SCENE := preload("res://scenes/enemies/Boss.tscn")
 const DungeonAmbience := preload("res://scripts/fx/dungeon_ambience.gd")
 const BarricadeScript := preload("res://scripts/interactables/barricade.gd")
 
@@ -27,6 +30,7 @@ var _spawn_accum: float = 0.0
 var _remaining_to_spawn: int = 0
 var _between_round_left: float = 0.0
 var _round_active: bool = false
+var _is_boss_round: bool = false
 var _floor_cells: Dictionary = {}
 var _entry_points: Array = []
 var _prop_collision: StaticBody3D = null
@@ -264,11 +268,15 @@ func _place_dungeon_props(props: Node3D) -> void:
 	_place_wall_prop("banner_patternA_red.gltf", Vector3(-18.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
 	_place_wall_prop("banner_patternA_green.gltf", Vector3(18.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
 
-	# Vault: keep the ring and arms clear so the navmesh stays connected and kiting
-	# is clean. Only a table tucked against the back-nub wall, clear of the Pack-a-
-	# Punch approach (x=0) and the nub's loop connections (x=-4/0/4 at the north edge).
+	# Vault: Massive open arena.
 	_place_prop("table_long_decorated_A.gltf", Vector3(-4.0, 0.0, -37.2), 0.0, props)
 	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -38.0), Vector2i(0, -1), props, 2.25)
+	
+	# Arena Pillars for cover in the massive open vault
+	_place_prop("pillar_decorated.gltf", Vector3(-8.0, 0.0, -20.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -20.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(-8.0, 0.0, -28.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -28.0), 0.0, props)
 
 func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) -> void:
 	var scene := load(KIT + model) as PackedScene
@@ -331,7 +339,9 @@ func _place_wall_prop(model: String, wall_pos: Vector3, dir: Vector2i, props: No
 func _collect_cells() -> void:
 	_add_room(Rect2i(-2, 4, 5, 3))     # Room A (start)
 	_add_room(Rect2i(-4, -2, 9, 5))    # Room B (combat)
+	_floor_cells[Vector2i(-1, 3)] = true    # widened corridor
 	_floor_cells[Vector2i(0, 3)] = true     # corridor A <-> B
+	_floor_cells[Vector2i(1, 3)] = true     # widened corridor
 	_floor_cells[Vector2i(0, -3)] = true    # buyable door into the vault loop
 	_add_barricade_alcoves()
 	_add_vault_loop()
@@ -344,14 +354,11 @@ func _add_barricade_alcoves() -> void:
 	_floor_cells[Vector2i(-5, 2)] = true
 
 func _add_vault_loop() -> void:
-	# A gated ring for late-round kiting. Only the centre top cell touches the
+	# A massive open arena for late-round kiting. Only the centre top cell touches the
 	# combat room, so the existing buyable door remains the loop unlock.
-	for tx in range(-4, 5):
-		_floor_cells[Vector2i(tx, -4)] = true
-		_floor_cells[Vector2i(tx, -8)] = true
-	for tz in range(-8, -3):
-		_floor_cells[Vector2i(-4, tz)] = true
-		_floor_cells[Vector2i(4, tz)] = true
+	_add_room(Rect2i(-4, -8, 9, 5))
+	
+	# Side nubs for the perk machines and Pack-a-Punch
 	_floor_cells[Vector2i(-5, -6)] = true
 	_floor_cells[Vector2i(5, -6)] = true
 	_floor_cells[Vector2i(-1, -9)] = true
@@ -403,7 +410,14 @@ func _process(delta: float) -> void:
 func _start_round() -> void:
 	var next_round := GameState.current_round + 1
 	GameState.set_round(next_round)
-	_remaining_to_spawn = first_round_enemy_count + (next_round - 1) * enemies_added_per_round
+	
+	if next_round > 0 and next_round % 10 == 0:
+		_remaining_to_spawn = 1
+		_is_boss_round = true
+	else:
+		_remaining_to_spawn = first_round_enemy_count + (next_round - 1) * enemies_added_per_round
+		_is_boss_round = false
+		
 	_spawn_accum = spawn_interval
 	_between_round_left = 0.0
 	_round_active = true
@@ -416,29 +430,51 @@ func _finish_round() -> void:
 	GameState.set_round_status(0, true, _between_round_left)
 
 func _spawn_orc() -> void:
-	if _alive_orcs() >= max_alive:
+	if _alive_orcs() >= max_alive and not _is_boss_round:
 		return
-	var orc: Node3D = ORC_SCENE.instantiate()
+		
+	if _is_boss_round:
+		var boss = BOSS_SCENE.instantiate()
+		enemies.add_child(boss)
+		boss.global_position = Vector3(0, 0, -25) # Vault center
+		_remaining_to_spawn -= 1
+		_update_round_status()
+		return
+		
+	var is_shaman := false
+	var is_brute := false
+	if GameState.current_round >= 5 and randf() < 0.1:
+		is_brute = true
+	elif GameState.current_round >= 3 and randf() < 0.2:
+		is_shaman = true
+		
+	var enemy: Node3D
+	if is_brute:
+		enemy = BRUTE_SCENE.instantiate()
+	elif is_shaman:
+		enemy = SHAMAN_SCENE.instantiate()
+	else:
+		enemy = ORC_SCENE.instantiate()
+		
 	var round_index := float(GameState.current_round - 1)
-	orc.set("max_health", float(orc.get("max_health")) * (1.0 + health_scale_per_round * round_index))
-	orc.set("move_speed", float(orc.get("move_speed")) * (1.0 + speed_scale_per_round * round_index))
-	enemies.add_child(orc)
+	enemy.set("max_health", float(enemy.get("max_health")) * (1.0 + health_scale_per_round * round_index))
+	enemy.set("move_speed", float(enemy.get("move_speed")) * (1.0 + speed_scale_per_round * round_index))
+	enemies.add_child(enemy)
 
 	if not _entry_points.is_empty():
 		var entry: Dictionary = _entry_points[randi() % _entry_points.size()]
 		var spawn_position: Vector3 = entry.get("spawn_position", Vector3.ZERO)
 		var barricade: Node = entry.get("barricade", null) as Node
-		orc.global_position = spawn_position
-		if barricade != null and is_instance_valid(barricade) and barricade.has_method("is_broken") \
-				and not barricade.is_broken() and orc.has_method("assign_barricade"):
-			orc.assign_barricade(barricade)
+		enemy.global_position = spawn_position
+		if barricade != null and is_instance_valid(barricade) and enemy.has_method("assign_barricade"):
+			enemy.assign_barricade(barricade)
 	else:
 		var points := spawn_points.get_children()
 		if points.is_empty():
-			orc.queue_free()
+			enemy.queue_free()
 			return
 		var marker: Node3D = points[randi() % points.size()]
-		orc.global_position = marker.global_position
+		enemy.global_position = marker.global_position
 
 	_remaining_to_spawn -= 1
 	_update_round_status()
@@ -449,3 +485,12 @@ func _alive_orcs() -> int:
 func _update_round_status() -> void:
 	var remaining := _remaining_to_spawn + _alive_orcs()
 	GameState.set_round_status(remaining, false)
+
+func _spawn_orc_at(pos: Vector3) -> void:
+	var enemy = ORC_SCENE.instantiate()
+	var round_index := float(GameState.current_round - 1)
+	enemy.set("max_health", float(enemy.get("max_health")) * (1.0 + health_scale_per_round * round_index))
+	enemy.set("move_speed", float(enemy.get("move_speed")) * (1.0 + speed_scale_per_round * round_index))
+	enemies.add_child(enemy)
+	enemy.global_position = pos
+	_update_round_status()
