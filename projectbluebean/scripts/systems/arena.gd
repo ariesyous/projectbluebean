@@ -34,9 +34,6 @@ var _is_boss_round: bool = false
 var _floor_cells: Dictionary = {}
 var _entry_points: Array = []
 var _prop_collision: StaticBody3D = null
-# Web runs single-threaded on GitHub Pages, so thin out dynamic lights there.
-var _web: bool = OS.has_feature("web")
-var _torch_n: int = 0
 
 func _ready() -> void:
 	randomize()
@@ -76,19 +73,22 @@ func _build_dungeon() -> void:
 	nav_region.add_child(prop_body)
 	_prop_collision = prop_body
 
+	var floor_data := _extract_tile_mesh(floor_scene)
+	var floor_placements: Array = []
 	for cell in _floor_cells:
 		var wx: float = cell.x * TILE
 		var wz: float = cell.y * TILE
-		var tile: Node3D = floor_scene.instantiate()
-		floors.add_child(tile)
-		tile.position = Vector3(wx, 0.0, wz)
+		floor_placements.append(Transform3D(Basis(), Vector3(wx, 0.0, wz)))
 		var fcol := CollisionShape3D.new()
 		var fbox := BoxShape3D.new()
 		fbox.size = Vector3(TILE, 0.2, TILE)
 		fcol.shape = fbox
 		floor_body.add_child(fcol)
 		fcol.position = Vector3(wx, -0.1, wz)
+	_add_tile_multimesh(floors, "FloorMultiMesh", floor_data["mesh"], floor_data["xform"], floor_placements)
 
+	var wall_data := _extract_tile_mesh(wall_scene)
+	var wall_placements: Array = []
 	var dirs := [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
 	var torch_i := 0
 	for cell in _floor_cells:
@@ -98,10 +98,7 @@ func _build_dungeon() -> void:
 			var wx: float = cell.x * TILE + dir.x * TILE * 0.5
 			var wz: float = cell.y * TILE + dir.y * TILE * 0.5
 			var yaw := PI * 0.5 if dir.x != 0 else 0.0
-			var wall: Node3D = wall_scene.instantiate()
-			walls.add_child(wall)
-			wall.position = Vector3(wx, 0.0, wz)
-			wall.rotation.y = yaw
+			wall_placements.append(Transform3D(Basis(Vector3.UP, yaw), Vector3(wx, 0.0, wz)))
 			var wcol := CollisionShape3D.new()
 			var wbox := BoxShape3D.new()
 			wbox.size = Vector3(TILE, WALL_H, 1.0)
@@ -112,6 +109,7 @@ func _build_dungeon() -> void:
 			torch_i += 1
 			if torch_i % 3 == 0:
 				_place_torch(Vector3(wx, 0.0, wz), dir, props)
+	_add_tile_multimesh(walls, "WallMultiMesh", wall_data["mesh"], wall_data["xform"], wall_placements)
 
 	_build_ceiling(props)
 	_build_corner_pillars(props)
@@ -124,22 +122,63 @@ func _start_ambient_audio() -> void:
 	ambience.name = "DungeonAmbience"
 	add_child(ambience)
 
+## Pull the renderable Mesh (and its transform within the glTF scene) out of a
+## KayKit tile so the dungeon can be drawn by a few MultiMeshInstance3D nodes
+## instead of hundreds of separate MeshInstance3D nodes. On the single-threaded
+## web build, draw-call submission is the bottleneck, and this collapses ~300
+## static-tile draw calls down to ~4. Collision stays as individual shapes (the
+## navmesh bake parses static colliders, not visuals), so nav is unaffected.
+func _extract_tile_mesh(scene: PackedScene) -> Dictionary:
+	var inst := scene.instantiate() as Node3D
+	var out := {"mesh": null, "xform": Transform3D.IDENTITY}
+	var mi := _first_mesh_instance(inst)
+	if mi != null:
+		out["mesh"] = mi.mesh
+		var x: Transform3D = mi.transform
+		var n: Node = mi.get_parent()
+		while n != null and n != inst:
+			x = (n as Node3D).transform * x
+			n = n.get_parent()
+		out["xform"] = inst.transform * x
+	inst.free()
+	return out
+
+func _first_mesh_instance(node: Node) -> MeshInstance3D:
+	if node is MeshInstance3D:
+		return node
+	for c in node.get_children():
+		var r := _first_mesh_instance(c)
+		if r != null:
+			return r
+	return null
+
+## Draw one copy of `mesh` per entry in `placements` (each pre-multiplied by the
+## mesh's in-scene `base` transform) as a single MultiMeshInstance3D.
+func _add_tile_multimesh(parent: Node3D, mm_name: String, mesh: Mesh, base: Transform3D, placements: Array) -> void:
+	if mesh == null or placements.is_empty():
+		return
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	mm.instance_count = placements.size()
+	for i in placements.size():
+		mm.set_instance_transform(i, (placements[i] as Transform3D) * base)
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = mm_name
+	mmi.multimesh = mm
+	parent.add_child(mmi)
+
 func _place_torch(wall_pos: Vector3, dir: Vector2i, props: Node3D) -> void:
 	var inner := Vector3(-dir.x, 0.0, -dir.y)   # toward the room interior
 	var torch: Node3D = load(KIT + "torch_mounted.gltf").instantiate()
 	props.add_child(torch)
 	torch.global_position = wall_pos + inner * 0.45 + Vector3(0.0, 2.3, 0.0)
 	torch.look_at(torch.global_position + inner, Vector3.UP)
-	_torch_n += 1
-	# On the single-threaded web build, keep every torch model (the emissive
-	# flame still reads) but only give half of them a real dynamic light.
-	if _web and _torch_n % 2 == 0:
-		return
 	var light := OmniLight3D.new()
 	light.set_script(load("res://scripts/fx/torch_flicker.gd"))
 	light.light_color = Color(1.0, 0.6, 0.25)
 	light.light_energy = 4.2
-	light.omni_range = 9.0 if _web else 12.0
+	light.omni_range = 12.0
 	light.shadow_enabled = false
 	props.add_child(light)
 	light.global_position = wall_pos + inner * 0.6 + Vector3(0.0, 2.7, 0.0)
@@ -153,10 +192,11 @@ func _build_ceiling(parent: Node3D) -> void:
 	var ceiling := Node3D.new()
 	ceiling.name = "DungeonCeiling"
 	parent.add_child(ceiling)
+	var ceil_data := _extract_tile_mesh(ceil_scene)
+	var ceil_placements: Array = []
 	for cell in _floor_cells:
-		var tile: Node3D = ceil_scene.instantiate()
-		ceiling.add_child(tile)
-		tile.position = Vector3(cell.x * TILE, WALL_H, cell.y * TILE)
+		ceil_placements.append(Transform3D(Basis(), Vector3(cell.x * TILE, WALL_H, cell.y * TILE)))
+	_add_tile_multimesh(ceiling, "CeilingMultiMesh", ceil_data["mesh"], ceil_data["xform"], ceil_placements)
 
 ## Place a corner buttress pillar at every convex corner (a cell whose two
 ## perpendicular edges are both walls and whose diagonal neighbour is empty), so
@@ -169,6 +209,8 @@ func _build_corner_pillars(parent: Node3D) -> void:
 	var pillars := Node3D.new()
 	pillars.name = "CornerPillars"
 	parent.add_child(pillars)
+	var pillar_data := _extract_tile_mesh(scene)
+	var pillar_placements: Array = []
 	var diags := [Vector2i(-1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1)]
 	for cell in _floor_cells:
 		for d in diags:
@@ -180,10 +222,8 @@ func _build_corner_pillars(parent: Node3D) -> void:
 				continue
 			var jx: float = cell.x * TILE + d.x * TILE * 0.5
 			var jz: float = cell.y * TILE + d.y * TILE * 0.5
-			var pil: Node3D = scene.instantiate()
-			pillars.add_child(pil)
-			pil.position = Vector3(jx, 0.0, jz)
-			pil.rotation.y = _corner_yaw(d)
+			pillar_placements.append(Transform3D(Basis(Vector3.UP, _corner_yaw(d)), Vector3(jx, 0.0, jz)))
+	_add_tile_multimesh(pillars, "CornerMultiMesh", pillar_data["mesh"], pillar_data["xform"], pillar_placements)
 
 ## Maps a convex-corner's exterior diagonal to the wall_corner yaw that tucks the
 ## buttress into that corner. Calibrated from the piece's local AABB.
@@ -255,8 +295,7 @@ func _tune_environment() -> void:
 	if we == null or we.environment == null:
 		return
 	var env := we.environment
-	# Brighter ambient on web compensates for the thinned-out torch lights.
-	env.ambient_light_energy = 1.0 if _web else 0.85
+	env.ambient_light_energy = 0.85
 	env.fog_density = 0.013
 
 func _place_dungeon_props(props: Node3D) -> void:

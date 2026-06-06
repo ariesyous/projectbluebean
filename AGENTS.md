@@ -39,14 +39,23 @@ Completed and committed so far:
     `Shaman.tscn` capsule to radius 0.55 / height 2.7 / offset y 1.35; raycasts now register from
     0.8 m up through 2.6 m (head + hat). Verified via `game_eval`.
 - **Web performance pass + export-list repair (2026-06-05):**
-  - The web build (GitHub Pages, single-threaded WASM, 1 core) lagged. Already on the right
-    renderer (`gl_compatibility`) with no glow/SSAO/SSR/shadows. Added **web-only** optimizations
-    that leave the desktop/editor build untouched (gated on `OS.has_feature("web")` and a
-    `.web` ProjectSettings override):
-    - `rendering/scaling_3d/scale.web = 0.75` (renders ~56% of the pixels — big fill-rate win).
-    - `arena.gd` thins dynamic torch lights to **half** on web (keeps every emissive torch model)
-      and drops omni range 12→9; ambient bumped 0.85→1.0 on web to keep the dungeon readable.
-    - Desktop verified unchanged: 32 omni lights, render scale 1.0.
+  - The web build (GitHub Pages, single-threaded WASM, 1 core) lagged. First attempt — **web-only
+    GPU reductions** (`scaling_3d/scale.web=0.75`, half the torch lights, ambient bump) — was
+    **reverted**: it made the dungeon dark and did NOT improve FPS, which confirmed the bottleneck
+    is **CPU (draw-call submission), not GPU/fill-rate**.
+  - **Real fix — MultiMesh draw-call reduction** (`arena.gd`): the dungeon used to spawn one
+    `MeshInstance3D` per floor/wall/ceiling/corner tile (~336 separate draw calls). `_build_dungeon`
+    now collects per-tile transforms and draws each tile type as a single `MultiMeshInstance3D` via
+    helpers `_extract_tile_mesh()` / `_first_mesh_instance()` / `_add_tile_multimesh()`. Result
+    (verified in-editor): Floor 117 + Wall 80 + Ceiling 117 + Corner 22 tiles now render in **4 draw
+    calls instead of 336** (total scene draw calls ~400 → ~103). Collision is untouched (still
+    individual `CollisionShape3D`s under `NavigationRegion3D`), and the bake parses static colliders
+    only (`PARSED_GEOMETRY_STATIC_COLLIDERS`), so the navmesh is unaffected (22-point path verified).
+  - **Fixed the web HUD "tofu" glitch** (`hud.gd` `_apply_hud_overhaul` / repair indicator): the
+    M10 overhaul used Unicode glyphs (crosshair `⊹` U+22B9, hit marker `✕`, repair `○◔◑◕●`). The
+    web build has **no OS font fallback**, so each rendered as a tofu box showing its hex codepoint
+    (the user saw the crosshair as "a box that says 22 / 69" = U+22B9). Replaced all with ASCII
+    (`+`, `X`, `.oO0#`). Any future HUD text must stay ASCII or ship an embedded font.
   - **Repaired the badly-stale Web export file list.** `export_presets.cfg` used a hand-curated
     `export_files` list (because `load(KIT + "...")` string-concat loads aren't followed by Godot's
     dependency scanner) that predated M5-polish/M8/M10/M11. It was missing the **main scene

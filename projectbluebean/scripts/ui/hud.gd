@@ -103,15 +103,15 @@ func _update_repair_progress() -> void:
 		return
 	_repair_progress_label.visible = true
 	if progress < 0.25:
-		_repair_progress_label.text = "○"
+		_repair_progress_label.text = "."
 	elif progress < 0.5:
-		_repair_progress_label.text = "◔"
+		_repair_progress_label.text = "o"
 	elif progress < 0.75:
-		_repair_progress_label.text = "◑"
+		_repair_progress_label.text = "O"
 	elif progress < 0.98:
-		_repair_progress_label.text = "◕"
+		_repair_progress_label.text = "0"
 	else:
-		_repair_progress_label.text = "●"
+		_repair_progress_label.text = "#"
 
 func _apply_hud_overhaul() -> void:
 	# Add shadows and outlines to Labels
@@ -123,14 +123,14 @@ func _apply_hud_overhaul() -> void:
 	_style_label(prompt_label, 32, Color(1, 0.95, 0.6))
 	
 	var ch = $Root/Crosshair as Label
-	ch.text = "⊹"
+	ch.text = "+"
 	ch.offset_left = -20
 	ch.offset_top = -20
 	ch.offset_right = 20
 	ch.offset_bottom = 20
 	_style_label(ch, 36, Color(1, 1, 1, 0.8))
 
-	hit_marker.text = "✕"
+	hit_marker.text = "X"
 	hit_marker.offset_left = -20
 	hit_marker.offset_top = -20
 	hit_marker.offset_right = 20
