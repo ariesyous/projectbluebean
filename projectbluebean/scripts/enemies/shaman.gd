@@ -42,7 +42,7 @@ func _ready() -> void:
 	health = max_health
 	nav_agent.path_desired_distance = 0.5
 	nav_agent.target_desired_distance = attack_range * 0.75
-	for a in ["Idle", "Walking_A", "Running_A", "Walk", "Run"]:
+	for a in ["Idle", "Walk", "Run", "Run_Carry"]:
 		if _anim.has_animation(a):
 			var clip := _anim.get_animation(a)
 			clip.loop_mode = Animation.LOOP_LINEAR
@@ -58,11 +58,43 @@ func _ready() -> void:
 	_death_audio.stream = preload("res://assets/orc_death.wav")
 	add_child(_death_audio)
 
+	_equip_weapon()
 	_acquire_player()
 	_play("Idle")
 
 func _acquire_player() -> void:
 	_player = get_tree().get_first_node_in_group("player")
+
+## Attaches a staff mesh to the model's right-hand bone (Fist.R).
+const WEAPON_SCENE := preload("res://assets/weapons/kaykit/staff.gltf")
+const WEAPON_GRIP_POS := Vector3(0.0, 0.06, 0.0)
+const WEAPON_GRIP_ROT := Vector3(180.0, 0.0, 0.0)
+const WEAPON_GRIP_SCALE := 0.6
+
+func _equip_weapon() -> void:
+	var skel := _find_skeleton(self)
+	if skel == null:
+		return
+	if skel.find_bone("Fist.R") == -1:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.name = "WeaponAttach"
+	skel.add_child(attach)
+	attach.bone_name = "Fist.R"
+	var weapon := WEAPON_SCENE.instantiate() as Node3D
+	attach.add_child(weapon)
+	weapon.position = WEAPON_GRIP_POS
+	weapon.rotation_degrees = WEAPON_GRIP_ROT
+	weapon.scale = Vector3.ONE * WEAPON_GRIP_SCALE
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node
+	for c in node.get_children():
+		var r := _find_skeleton(c)
+		if r != null:
+			return r
+	return null
 
 func assign_barricade(barricade: Node) -> void:
 	_barricade_target = barricade
@@ -148,7 +180,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = dir.x * move_speed
 		velocity.z = dir.z * move_speed
 		_face_toward(next_point)
-		_play("Run")
+		_play("Run_Carry")
 
 	if nav_agent.avoidance_enabled:
 		nav_agent.velocity = velocity
@@ -190,7 +222,7 @@ func _update_barricade_attack() -> void:
 		velocity.x = dir.x * move_speed
 		velocity.z = dir.z * move_speed
 		_face_toward(next_point)
-		_play("Run")
+		_play("Run_Carry")
 	if nav_agent.avoidance_enabled:
 		nav_agent.velocity = velocity
 	else:
@@ -198,7 +230,7 @@ func _update_barricade_attack() -> void:
 
 func _attack_barricade() -> void:
 	_attack_timer = barricade_attack_cooldown
-	_play_oneshot("Punch")
+	_play_oneshot("SwordSlash")
 	_attack_audio.play()
 	if _barricade_target != null and is_instance_valid(_barricade_target) \
 			and _barricade_target.has_method("damage_from_orc"):
@@ -213,6 +245,8 @@ func _start_vault(barricade: Node) -> void:
 	_vault_end_pos.y = global_position.y
 
 func _on_velocity_computed(safe_velocity: Vector3) -> void:
+	if _dead:
+		return
 	velocity = safe_velocity
 	move_and_slide()
 
@@ -223,7 +257,7 @@ func _face_toward(target: Vector3) -> void:
 
 func _attack() -> void:
 	_attack_timer = attack_cooldown
-	_play_oneshot("Cast")
+	_play_oneshot("Shoot_OneHanded")
 	_attack_audio.play()
 	get_tree().create_timer(CAST_LEN * 0.4).timeout.connect(
 		func() -> void:

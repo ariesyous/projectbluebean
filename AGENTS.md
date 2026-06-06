@@ -14,6 +14,30 @@ There is no uncommitted work. The repository is clean as of the latest commit.
 
 Completed and committed so far:
 
+- **Enemy animation / weapons / hitbox fixes (post-M10 playtest, 2026-06-05):**
+  - All enemy models (Wizard/Viking/Knight/Goblin) share **one Quaternius rig** with clips
+    `Idle, Walk, Run, Run_Carry, Walk_Carry, Punch, SwordSlash, Shoot_OneHanded, Jump, Death, …`.
+    The scripts had been calling clip names that don't exist in that rig, so `AnimationPlayer.play()`
+    was a no-op and the model froze in its rest pose. Fixed: **boss & brute glide**
+    (`"Running_A"` → `Run_Carry`, and added Run/Run_Carry to the loop-mode list so it actually
+    loops) and **mage casting** (`"Cast"`/`"Spellcast_Shoot"` → `Shoot_OneHanded`). Armed melee
+    enemies now swing with `SwordSlash`.
+  - Fixed a **latent bug in `boss.gd`**: `_barricade_target` was used/assigned but never declared.
+  - **Equipped weapons** on enemies via a code-added `BoneAttachment3D` on the `Fist.R` bone
+    (`_equip_weapon()` + `_find_skeleton()` in boss/brute/shaman): `staff.gltf` on the mage,
+    `axe_1handed.gltf` on the Knight (Brute) and Viking (Boss). Grip is exposed as
+    `WEAPON_GRIP_POS/ROT/SCALE` consts at the top of each `_equip_weapon()`. **Tuned** so the axe
+    stands upright in the fist (pos `(0,-0.15,0)`, rot `(180,0,0)`, scale `0.55`) and the staff is
+    held vertically with the glowing orb up by the shoulder (pos `(0,0.06,0)`, rot `(180,0,0)`,
+    scale `0.6`). All enemies share the rig, so the axe transform is identical for Brute and Boss.
+  - Fixed **enemy "death slide"**: `_on_velocity_computed()` (the NavigationAgent avoidance
+    callback) had no `_dead` guard, so a killed enemy kept being pushed by `move_and_slide()` in its
+    last travel direction during the death animation. Added `if _dead: return` to all four enemy
+    scripts (orc/brute/shaman/boss).
+  - Fixed **mage headshots not registering**: the Wizard head bone sits at y≈2.02 but the Shaman
+    capsule topped out at exactly y=2.0, so the head + hat were above the collider. Resized the
+    `Shaman.tscn` capsule to radius 0.55 / height 2.7 / offset y 1.35; raycasts now register from
+    0.8 m up through 2.6 m (head + hat). Verified via `game_eval`.
 - **M10 Polish Pass (HUD, Audio, Vaulting, Bosses)**:
   - Replaced the enemy models with `Ultimate Animated Character Pack`.
   - Added a Boss enemy (Viking Warlord, `boss.gd`) that has 2000 HP and spawns minions when hit.
@@ -398,11 +422,16 @@ done** (see Completed list); next up is **M8 → M11**; confirm scope with the u
 
 ### Best Next Step
 
-**Current resume point:** The M10 polish pass (HUD overhaul, audio pass, barricade vaulting animations, and boss encounters) has been successfully completed and committed. The backlog of polish items from the previous playtest has been cleared.
+**Current resume point:** The post-M10 enemy fix pass is done and committed — enemy animations
+(boss/brute walk, mage cast) now play, melee/caster enemies hold real weapons on the `Fist.R` bone,
+the death-slide is gone, and the mage headshot hitbox covers the head/hat. Wall-buy blue-box
+placeholders were already replaced in an earlier pass.
 
 For the next Coding Agent session, consider focusing on:
-- Adding new weapons and replacing the blue-box placeholders for the Staff/Axe wall-buys with actual models.
-- Adding additional enemy varieties or refining the AI navigation.
+- Fine-tuning the equipped-weapon grip angles (`WEAPON_GRIP_POS/ROT/SCALE` in each enemy
+  `_equip_weapon()`) — needs the game window focused for a fresh screenshot.
+- Adding new weapons / more enemy varieties, or refining the AI navigation (orcs still snag on
+  corners).
 - Expanding the arena flow further or improving the procedural level generation.
 
 ## User Preferences / Context

@@ -1,25 +1,24 @@
-[gd_scene load_steps=4 format=3 uid="uid://cxab3xqw3t7r6"]
+[gd_scene format=3 uid="uid://cxab3xqw3t7r6"]
 
-[ext_resource type="Script" path="res://scripts/enemies/shaman.gd" id="1_a2b3c"]
-[ext_resource type="PackedScene" path="res://assets/enemies/Wizard.gltf" id="2_b3c4d"]
+[ext_resource type="Script" uid="uid://2wl5gp6jwrl3" path="res://scripts/enemies/shaman.gd" id="1_a2b3c"]
+[ext_resource type="PackedScene" uid="uid://cwp5k7n7f6hvn" path="res://assets/enemies/Wizard.gltf" id="2_b3c4d"]
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8quh0"]
-radius = 0.5
-height = 2.0
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_2050v"]
+radius = 0.55
+height = 2.7
 
-[node name="Shaman" type="CharacterBody3D"]
+[node name="Shaman" type="CharacterBody3D" unique_id=1388578699]
 collision_layer = 4
 script = ExtResource("1_a2b3c")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-shape = SubResource("CapsuleShape3D_8quh0")
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=918478314]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.35, 0)
+shape = SubResource("CapsuleShape3D_2050v")
 
-[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="." unique_id=970953679]
 path_postprocessing = 1
 avoidance_enabled = true
-radius = 0.5
 neighbor_distance = 10.0
 
-[node name="Wizard" parent="." instance=ExtResource("2_b3c4d")]
+[node name="Wizard" parent="." unique_id=1006096612 instance=ExtResource("2_b3c4d")]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, 0, 0)

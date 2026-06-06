@@ -188,6 +188,8 @@ func _start_vault(barricade: Node) -> void:
 	_vault_end_pos.y = global_position.y
 
 func _on_velocity_computed(safe_velocity: Vector3) -> void:
+	if _dead:
+		return
 	velocity = safe_velocity
 	move_and_slide()
 
