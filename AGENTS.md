@@ -545,13 +545,16 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-**Current resume point (2026-07-02): M12 "The Undercroft" is DONE and committed (`2c97659`).**
-Next, in order: (1) **re-export the web build** (the live GitHub Pages build still runs the old
-map — headless CLI export as documented below, then commit `docs/`); (2) **user playtest** of
-the new map (door costs/pacing, perk shrine facing, hall/gallery cover feel, crypt darkness);
-(3) the pre-existing backlog below (enemy AI corner-snagging — note the Explore findings:
-enemy capsule radii 0.55–1.1 exceed the baked navmesh agent_radius 0.5 and
-`path_postprocessing=1` (edge-centered) hugs corners; web CPU levers; content/meta).
+**Current resume point (2026-07-02): M12 "The Undercroft" is DONE, committed (`2c97659`), and
+the web build is re-exported + LIVE on GitHub Pages (`2ebb73e`, pck 5,075,864 bytes verified by
+content-length; exported with Godot 4.7 + freshly installed 4.7 web nothreads templates —
+editor binary `C:\Users\sith\Code\projectgencom\Godot_v4.7-stable_win64.exe`, the old 4.6.3
+binary is gone).** Next, in order: (1) **user playtest** — desktop + a hard-refresh of
+`https://ariesyous.github.io/projectbluebean/?v=2ebb73e` (door costs/pacing, perk shrine
+facing, hall/gallery cover feel, crypt darkness, web FPS on the bigger map); (2) the
+pre-existing backlog below (enemy AI corner-snagging — note the Explore findings: enemy capsule
+radii 0.55–1.1 exceed the baked navmesh agent_radius 0.5 and `path_postprocessing=1`
+(edge-centered) hugs corners; web CPU levers incl. torch modulus; content/meta).
 
 **Previous resume point:** M1–M10 are done and committed, plus a **main menu + pause menu**
 (`scenes/ui/MainMenu.tscn` is now the project's main scene; `PauseMenu.tscn`). The 2026-06-05
