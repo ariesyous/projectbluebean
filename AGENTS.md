@@ -8,14 +8,35 @@ This repo is a Godot 4.6.3 first-person, round-based fantasy survival shooter. T
 
 The game is playable through the main scene, `res://scenes/world/Arena.tscn`.
 
-## Uncommitted work — M12 map redesign IN PROGRESS (2026-07-02), game NOT runnable as-is
+## M12 "The Undercroft" — DONE, verified, committed (2026-07-02, commit `2c97659`)
 
-**Read this before doing anything else.** A map redesign ("The Undercroft", user-approved scope:
-bigger map + staged buyable doors + more KayKit variety) is **half-migrated**. The **full plan is
-embedded in this file** (see "The Undercroft — full design reference" below); a copy also exists
-at `C:\Users\sith\.claude\plans\witty-wiggling-kurzweil.md` but this file is authoritative.
+The map redesign (user-approved scope: bigger map + staged buyable doors + more KayKit variety)
+is **complete and committed**. The full design reference is embedded below ("The Undercroft —
+full design reference"). **Not yet done: web re-export** (the live GitHub Pages build still runs
+the OLD map — re-export via the headless CLI as before) and a **user playtest**.
 
-### Script side — DONE (all diagnostics clean, edited via godot-ai MCP)
+Verified in-game this session (run 3, clean): 231 cells; 3 doors block their lanes and clear
+after purchase with correct cost deduction; stage unlock cascade `_active_entries()` 1 → 3 → 5;
+all active spawn positions stay in unlocked areas; nav paths reach all 5 barricade positions,
+all machines, and all boss points (endpoint gap 0.10); kiting loop paths both directions after
+doors 2+3; round-1 orcs spawned at Chapel Window, broke the boards, vaulted in, crossed the
+chapel, and killed an idle player (combat + entry flow work); per-area screenshots confirmed
+distinct identities (stone chapel/hall, wood annex, torch-lined 76 m gallery, dirt crypt with
+glowing PaP apse); 144 FPS, 376 draw calls (up from ~103 — more props + ~60 torches; desktop
+fine, web lever = raise torch modulus `% 3` → `% 4` in `_build_dungeon`).
+
+Session gotchas learned (additions to the MCP-gotchas list):
+- `script_patch` params are `old_text`/`new_text` (NOT old_string/new_string).
+- **The game main loop fully stalls when the window loses focus** (0 process/physics frames;
+  likely pause-menu focus-out pause + helper quirk) — `game_eval` awaits hang, orcs freeze.
+  A stalled run can wedge (editor says `is_playing:false`, helper still answers): stop +
+  relaunch. `DisplayServer.window_move_to_foreground()` via eval can reclaim focus. Keep any
+  single eval's awaits under ~8 s total.
+- `project_run(mode="custom", scene="res://scenes/world/Arena.tscn")` skips the main menu.
+- Godot upgraded to **4.7-stable**; plugin/project.godot upgrade artifacts committed
+  separately as `1c1ecd5`.
+
+### Script side (all in commit `2c97659`, edited via godot-ai MCP)
 
 - `scripts/interactables/buyable_door.gd` — rewritten: `signal opened(id)`, vars
   `door_id`/`door_cost`/`door_label` read in `_configure()` (cost is no longer hard-coded 1000),
@@ -38,32 +59,14 @@ at `C:\Users\sith\.claude\plans\witty-wiggling-kurzweil.md` but this file is aut
   - `_place_dungeon_props()` rewritten with per-area dressing (door lanes/corridor/apse/alcove
     mouths deliberately prop-free — prop colliders carve the navmesh).
 
-### NOT done — required before the game will run correctly
+### Scene + export side (also in commit `2c97659`)
 
-1. **`scenes/world/Arena.tscn` edits** (via MCP `scene_open` + `node_manage delete` +
-   `node_set_property` + `scene_save`): **delete the old `BuyableDoor` node** (its cell (0,-3) no
-   longer exists — it floats in void, and arena.gd no longer decorates it) and move:
-   MysteryBox → (26,0,6); PerkReload → (-36,0,-8); PerkFireRate → (-28,0,-40);
-   PerkSpeed → (20,0,-40); PackAPunch → (-4,0,-52); Spawn1-4 → (-6,0.3,17),(6,0.3,17),
-   (-6,0.3,27),(6,0.3,27). Player (0,1,20) and WallBuy/WallBuyAxe (±9.5,1.5,18) unchanged.
-   **Until this is done, machines sit inside walls/void of the new layout.**
-2. **`projectbluebean/export_presets.cfg`**: append to `export_files` (prefix
-   `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/`): floor_wood_large,
-   floor_dirt_large, column, barrier, keg, keg_decorated, chest, chest_gold, trunk_large_A,
-   shelf_large, rubble_large, rubble_half, table_long_tablecloth, table_long_broken,
-   banner_thin_blue, banner_shield_green, banner_thin_yellow, banner_patternB_white (all .gltf)
-   — or the web build gray-screens.
-3. **Verification** (never launched yet): `project_run(autosave=false)`; `_floor_cells.size()==231`;
-   ray across each door cell hits Barrier pre-purchase and clears after
-   `Economy.add_points(10000)` + `interact()`; `_active_entries().size()` = 1 → 3 (door1) → 5
-   (door2/3); `map_get_path` reaches all 5 barricade attack positions + machines + boss points;
-   loop paths both ways after doors 2+3; screenshots per area; monitors_get FPS/draw calls
-   (~60 torch lights now — if web FPS suffers, raise torch modulus 3→4 in `_build_dungeon`).
-4. Commit as one checkpoint; then update this section.
-
-Note: `git status` also shows many modified `addons/godot_ai/*` files — that's the MCP plugin
-updated alongside the **Godot 4.7-stable upgrade** (editor was 4.6.3 last session), not part of
-this work. Keep plugin changes out of the gameplay commit if practical.
+- `Arena.tscn`: old `BuyableDoor` node deleted; MysteryBox (26,0,6); PerkReload (-36,0,-8)
+  yaw -90; PerkFireRate (-28,0,-40) yaw -90; PerkSpeed (20,0,-40) yaw +90; PackAPunch
+  (-4,0,-52); Spawn1-4 moved into the chapel. Player + WallBuy/WallBuyAxe unchanged.
+  (Perk shrine yaws were NOT visually confirmed against the model's forward axis — check on
+  the next playtest; interaction works regardless.)
+- `export_presets.cfg`: the 18 new KayKit gltf paths appended to `export_files`.
 
 ### The Undercroft — full design reference (cell = 4 units; world = cell×4; self-contained)
 
@@ -542,10 +545,13 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-**⚠ Current resume point (2026-07-02): finish the half-migrated M12 map redesign** — see
-"Uncommitted work" at the top of this file for exactly what's done (all script work) and what
-remains (Arena.tscn node moves + old BuyableDoor deletion, export_presets.cfg additions, full
-in-game verification, commit). Do that before anything below.
+**Current resume point (2026-07-02): M12 "The Undercroft" is DONE and committed (`2c97659`).**
+Next, in order: (1) **re-export the web build** (the live GitHub Pages build still runs the old
+map — headless CLI export as documented below, then commit `docs/`); (2) **user playtest** of
+the new map (door costs/pacing, perk shrine facing, hall/gallery cover feel, crypt darkness);
+(3) the pre-existing backlog below (enemy AI corner-snagging — note the Explore findings:
+enemy capsule radii 0.55–1.1 exceed the baked navmesh agent_radius 0.5 and
+`path_postprocessing=1` (edge-centered) hugs corners; web CPU levers; content/meta).
 
 **Previous resume point:** M1–M10 are done and committed, plus a **main menu + pause menu**
 (`scenes/ui/MainMenu.tscn` is now the project's main scene; `PauseMenu.tscn`). The 2026-06-05
