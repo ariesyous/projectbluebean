@@ -8,9 +8,175 @@ This repo is a Godot 4.6.3 first-person, round-based fantasy survival shooter. T
 
 The game is playable through the main scene, `res://scenes/world/Arena.tscn`.
 
-## Uncommitted work
+## Uncommitted work — M12 map redesign IN PROGRESS (2026-07-02), game NOT runnable as-is
 
-There is no uncommitted work. The repository is clean as of the latest commit.
+**Read this before doing anything else.** A map redesign ("The Undercroft", user-approved scope:
+bigger map + staged buyable doors + more KayKit variety) is **half-migrated**. The **full plan is
+embedded in this file** (see "The Undercroft — full design reference" below); a copy also exists
+at `C:\Users\sith\.claude\plans\witty-wiggling-kurzweil.md` but this file is authoritative.
+
+### Script side — DONE (all diagnostics clean, edited via godot-ai MCP)
+
+- `scripts/interactables/buyable_door.gd` — rewritten: `signal opened(id)`, vars
+  `door_id`/`door_cost`/`door_label` read in `_configure()` (cost is no longer hard-coded 1000),
+  `_on_purchased` emits `opened` first, hinge is now basis-relative.
+- `scripts/systems/arena.gd` — patched:
+  - `STYLE_STONE/WOOD/DIRT` consts; `_floor_cells` values are now **styles, not `true`**;
+    `_add_room(rect, style)`; floors render as one MultiMesh per style
+    (`floor_tile_large`/`floor_wood_large`/`floor_dirt_large`).
+  - New `_collect_cells()` = the Undercroft layout (231 cells, see map below).
+  - `_decorate_buyable_door()` → **replaced** by `_create_buyable_doors()` /
+    `_create_buyable_door(cell,id,price,label)`: 3 code-built doors (Area3D + DoorScript +
+    interact shape + Barrier/BarrierCol + wall_doorway DoorModel), parented under **Arena root**
+    (never the nav region — navmesh must span doorways), connected to `_on_door_opened`.
+  - Spawn gating: `_stage_unlocked=[true,false,false]`; entries carry `"stage"`;
+    `_active_entries()` filter used by `_spawn_orc`; `_on_door_opened` unlocks stage 1 (any door)
+    and stage 2 (door2/door3).
+  - 5 barricade entries: Chapel Window (0,7)(0,1) s0; West Breach (-8,0)(-1,0) s1; Storage
+    Window (8,0)(1,0) s1; Gallery Breach (-9,-5)(-1,0) s2; Crypt Breach (4,-12)(0,-1) s2.
+  - Boss: `_boss_spawn_position()` — s2 crypt (-4,0,-40); s1 hall (-14,0,0); s0 chapel (0,0,26).
+  - `_place_dungeon_props()` rewritten with per-area dressing (door lanes/corridor/apse/alcove
+    mouths deliberately prop-free — prop colliders carve the navmesh).
+
+### NOT done — required before the game will run correctly
+
+1. **`scenes/world/Arena.tscn` edits** (via MCP `scene_open` + `node_manage delete` +
+   `node_set_property` + `scene_save`): **delete the old `BuyableDoor` node** (its cell (0,-3) no
+   longer exists — it floats in void, and arena.gd no longer decorates it) and move:
+   MysteryBox → (26,0,6); PerkReload → (-36,0,-8); PerkFireRate → (-28,0,-40);
+   PerkSpeed → (20,0,-40); PackAPunch → (-4,0,-52); Spawn1-4 → (-6,0.3,17),(6,0.3,17),
+   (-6,0.3,27),(6,0.3,27). Player (0,1,20) and WallBuy/WallBuyAxe (±9.5,1.5,18) unchanged.
+   **Until this is done, machines sit inside walls/void of the new layout.**
+2. **`projectbluebean/export_presets.cfg`**: append to `export_files` (prefix
+   `res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/`): floor_wood_large,
+   floor_dirt_large, column, barrier, keg, keg_decorated, chest, chest_gold, trunk_large_A,
+   shelf_large, rubble_large, rubble_half, table_long_tablecloth, table_long_broken,
+   banner_thin_blue, banner_shield_green, banner_thin_yellow, banner_patternB_white (all .gltf)
+   — or the web build gray-screens.
+3. **Verification** (never launched yet): `project_run(autosave=false)`; `_floor_cells.size()==231`;
+   ray across each door cell hits Barrier pre-purchase and clears after
+   `Economy.add_points(10000)` + `interact()`; `_active_entries().size()` = 1 → 3 (door1) → 5
+   (door2/3); `map_get_path` reaches all 5 barricade attack positions + machines + boss points;
+   loop paths both ways after doors 2+3; screenshots per area; monitors_get FPS/draw calls
+   (~60 torch lights now — if web FPS suffers, raise torch modulus 3→4 in `_build_dungeon`).
+4. Commit as one checkpoint; then update this section.
+
+Note: `git status` also shows many modified `addons/godot_ai/*` files — that's the MCP plugin
+updated alongside the **Godot 4.7-stable upgrade** (editor was 4.6.3 last session), not part of
+this work. Keep plugin changes out of the gameplay commit if practical.
+
+### The Undercroft — full design reference (cell = 4 units; world = cell×4; self-contained)
+
+The done script work in `arena.gd`/`buyable_door.gd` is its own ground truth — read those for
+exact code. This section preserves the *design intent* and every hand-authored coordinate.
+
+**Stages / rooms** (231 cells total; `_collect_cells()` in arena.gd implements exactly this):
+
+- Stage 0 **Chapel** `Rect2i(-2,4,5,4)` — start; player (0,1,20); Staff/Axe wall-buys unchanged
+  at (±9.5,1.5,18). Floor style STONE.
+- Stage 1 via **Door 1 (1000, cell (0,3), node (0,2,12), "Open the Great Hall")**:
+  **Great Hall** `Rect2i(-8,-2,10,5)` STONE + **Storage Annex** `Rect2i(3,-2,6,5)` WOOD, joined
+  by a 2-wide arch (2,0),(2,1) WOOD. PerkReload nub (-9,-2) STONE; MysteryBox in the Annex.
+- Stage 2 via **Door 2 (1750, cell (-3,-3), node (-12,2,-12), "Open the Long Gallery")** or
+  **Door 3 (2500, cell (5,-3), node (20,2,-12), "Open the Storage Gate")**:
+  **Long Gallery** `Rect2i(-9,-6,19,3)` STONE (76 m sightline) + **Crypt** `Rect2i(-6,-12,11,5)`
+  DIRT via a 3-wide corridor (-2..0,-7) DIRT, plus the Pack-a-Punch apse (-2..0,-13) DIRT.
+  Crypt perk nubs (-7,-10) and (5,-10) DIRT. Opening BOTH deep doors completes the kiting loop
+  Hall→Arch→Annex→Door3→Gallery→Door2→Hall.
+- Gating invariant (verified on paper): each stage region's ONLY non-barricade opening is its
+  door cell(s); every door cell has exactly two opposite floor neighbours (no walk-around leak);
+  every alcove/nub touches its area by exactly one edge.
+
+**ASCII tile map** (x = -10..9 west→east; z = -13 top/deep .. 8 bottom/start. A chapel,
+1/2/3 door cells, H hall, a arch, S annex, G gallery, c corridor, C crypt, P PaP apse,
+n machine nub, W barricade alcove, . empty):
+
+```
+        x: -10 -9 -8 -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7  8  9
+z=-13       .  .  .  .  .  .  .  .  P  P  P  .  .  .  W  .  .  .  .  .   W=B5 Crypt Breach
+z=-12       .  .  .  .  C  C  C  C  C  C  C  C  C  C  C  .  .  .  .  .
+z=-11       .  .  .  .  C  C  C  C  C  C  C  C  C  C  C  .  .  .  .  .
+z=-10       .  .  .  n  C  C  C  C  C  C  C  C  C  C  C  n  .  .  .  .   n(-7)=FireRate n(5)=Speed
+z=-9        .  .  .  .  C  C  C  C  C  C  C  C  C  C  C  .  .  .  .  .
+z=-8        .  .  .  .  C  C  C  C  C  C  C  C  C  C  C  .  .  .  .  .
+z=-7        .  .  .  .  .  .  .  .  c  c  c  .  .  .  .  .  .  .  .  .   3-wide crypt corridor
+z=-6        .  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G
+z=-5        W  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G   W=B4 Gallery Breach
+z=-4        .  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G  G
+z=-3        .  .  .  .  .  .  .  2  .  .  .  .  .  .  .  3  .  .  .  .   Door2 (-3,-3) Door3 (5,-3)
+z=-2        .  n  H  H  H  H  H  H  H  H  H  H  .  S  S  S  S  S  S  .   n=PerkReload nub
+z=-1        .  .  H  H  H  H  H  H  H  H  H  H  .  S  S  S  S  S  S  .
+z= 0        .  W  H  H  H  H  H  H  H  H  H  H  a  S  S  S  S  S  S  W   W(-9)=B2, W(9)=B3
+z= 1        .  .  H  H  H  H  H  H  H  H  H  H  a  S  S  S  S  S  S  .
+z= 2        .  .  H  H  H  H  H  H  H  H  H  H  .  S  S  S  S  S  S  .
+z= 3        .  .  .  .  .  .  .  .  .  .  1  .  .  .  .  .  .  .  .  .   Door1 (0,3)
+z= 4        .  .  .  .  .  .  .  .  A  A  A  A  A  .  .  .  .  .  .  .
+z= 5        .  .  .  .  .  .  .  .  A  A  A  A  A  .  .  .  .  .  .  .   Player (0,1,20)
+z= 6        .  .  .  .  .  .  .  .  A  A  A  A  A  .  .  .  .  .  .  .
+z= 7        .  .  .  .  .  .  .  .  A  A  A  A  A  .  .  .  .  .  .  .
+z= 8        .  .  .  .  .  .  .  .  .  .  W  .  .  .  .  .  .  .  .  .   W=B1 Chapel Window
+```
+
+**Barricade entries** (implemented in `_create_barricade_entries`; barricade sits half a tile
+outside its room cell, spawn one further half-tile out):
+
+| # | Label | Room cell | Dir | Stage | Barricade world | Spawn world |
+|---|---|---|---|---|---|---|
+| B1 | Chapel Window | (0,7) | (0,1) | 0 | (0,0,30) | (0,0,32) |
+| B2 | West Breach | (-8,0) | (-1,0) | 1 | (-34,0,0) | (-36,0,0) |
+| B3 | Storage Window | (8,0) | (1,0) | 1 | (34,0,0) | (36,0,0) |
+| B4 | Gallery Breach | (-9,-5) | (-1,0) | 2 | (-38,0,-20) | (-40,0,-20) |
+| B5 | Crypt Breach | (4,-12) | (0,-1) | 2 | (16,0,-50) | (16,0,-52) |
+
+**Arena.tscn node transforms** (step 1 of the remaining work; positions are node origins):
+
+| Node | New origin | Note |
+|---|---|---|
+| Player | (0,1,20) | unchanged |
+| WallBuy (Staff) | (9.5,1.5,18) | unchanged |
+| WallBuyAxe | (-9.5,1.5,18) | unchanged |
+| BuyableDoor | **DELETE the node** | replaced by 3 code-built doors |
+| MysteryBox | (26,0,6) | Storage Annex |
+| PerkReload | (-36,0,-8) | hall west nub; face +x toward hall |
+| PerkFireRate | (-28,0,-40) | crypt west nub; face +x |
+| PerkSpeed | (20,0,-40) | crypt east nub; face -x |
+| PackAPunch | (-4,0,-52) | PaP apse (deepest point) |
+| Spawn1..4 | (-6,0.3,17),(6,0.3,17),(-6,0.3,27),(6,0.3,27) | fallback markers, all in chapel |
+
+(Perk shrine facing: yaw was not verified against the model's forward axis — set it, screenshot,
+and adjust; interaction works regardless of facing.)
+
+**Boss spawn points** (`_boss_spawn_position()`, kept prop-free): stage 2 → crypt centre
+(-4,0,-40); stage 1 → hall centre (-14,0,0); stage 0 → chapel south (0,0,26).
+
+**Prop/dressing intent** (implemented in `_place_dungeon_props`; per-area identity): Chapel blue
+banners + barrel/crates; Great Hall = red feast hall (2 long tables west, 2 `column` cover at
+z=0, low `barrier`, keg); Annex = green storage (kegs, crates, `shelf_large`, `chest`); Gallery =
+yellow, 4 `column` on the z=-20 centreline for cover along the sightline + rubble in corners;
+Crypt = white/gold (4 `pillar_decorated` colonnade, trunk/chest, `chest_gold` + broken table by
+the apse). Rule: prop colliders carve the navmesh — door lanes, arch lane, corridor, apse
+approach, alcove and nub mouths must stay prop-free.
+
+**Verification details** (step 3; all via `editor_manage game_eval` after
+`project_run(autosave=false)` + ~6 s wait, game window focused):
+
+- `get_tree().current_scene._floor_cells.size()` == 231; `_entry_points.size()` == 5;
+  `_active_entries().size()` == 1.
+- Door gating per door: `direct_space_state.intersect_ray` across the door cell
+  (door1 (0,1,10)→(0,1,14); door2 (-12,1,-10)→(-12,1,-14); door3 (20,1,-10)→(20,1,-14))
+  hits a StaticBody pre-purchase; `Economy.add_points(10000)` then call `interact(player)` on
+  the door node (named `BuyableDoor_door1` etc., children of Arena); ~1 s later the ray is clear
+  and `_active_entries()` grew (3 after door1, 5 after door2 or door3).
+- Nav: `NavigationServer3D.map_get_path(map, from, to, true)` non-empty + endpoint within ~1 m
+  for: each barricade's `get_orc_attack_position()`, each machine, each boss point, the PaP apse;
+  after doors 2+3, loop paths both directions, e.g. (-12,0.5,-8)→(20,0.5,-16) and reverse.
+- Spawn gating: with only door1 open, force ~20 `_spawn_orc()` calls and assert no enemy
+  `global_position.z < -12`.
+- Boss: `_boss_spawn_position()` per stage matches the table above.
+- Perf: `editor_manage monitors_get` FPS + draw calls (~60 torch lights now vs ~40; if web FPS
+  suffers later, raise the torch modulus `torch_i % 3` → `% 4` in `_build_dungeon`).
+- `editor_screenshot` in each area (set `GameState.is_game_over=true` + hide overlay trick from
+  the MCP-gotchas section for static shots).
 
 Completed and committed so far:
 
@@ -376,7 +542,12 @@ spawn orcs behind a closed door — current spawn markers are only in the start/
 
 ## Best Next Step
 
-**Current resume point:** M1–M10 are done and committed, plus a **main menu + pause menu**
+**⚠ Current resume point (2026-07-02): finish the half-migrated M12 map redesign** — see
+"Uncommitted work" at the top of this file for exactly what's done (all script work) and what
+remains (Arena.tscn node moves + old BuyableDoor deletion, export_presets.cfg additions, full
+in-game verification, commit). Do that before anything below.
+
+**Previous resume point:** M1–M10 are done and committed, plus a **main menu + pause menu**
 (`scenes/ui/MainMenu.tscn` is now the project's main scene; `PauseMenu.tscn`). The 2026-06-05
 session fixed enemy animations, equipped + posed enemy weapons, removed the death-slide, fixed the
 mage headshot hitbox, added a **web performance pass**, repaired the stale Web export file list, and

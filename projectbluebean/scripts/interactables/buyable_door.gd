@@ -3,14 +3,25 @@ extends Buyable
 ## path opens at once) and the door model swings open on a hinge with a heavy
 ## thunk before the whole node frees. The navmesh already spans the doorway, so
 ## orcs and the player can pass once the barrier is gone.
+##
+## Doors are created in code by arena.gd (`_create_buyable_doors`) with a
+## per-door id / cost / label set before add_child, then read in _configure().
+
+signal opened(id: StringName)
+
+var door_id: StringName = &"door"
+var door_cost: int = 1000
+var door_label: String = "Open Door"
 
 func _configure() -> void:
-	cost = 1000
-	prompt_label = "Open Door"
+	cost = door_cost
+	prompt_label = door_label
 	one_time = true
 
 func _on_purchased(_player: Node) -> void:
-	var barrier := get_node_or_null("Barrier")
+	# Tell the arena first so spawn gating unlocks even if the swing is skipped.
+	opened.emit(door_id)
+	var barrier := get_node_or_null("Barrier") as Node3D
 	if barrier == null:
 		queue_free()
 		return
@@ -24,10 +35,10 @@ func _on_purchased(_player: Node) -> void:
 		return
 	_play_open_sound()
 	# Re-hinge the door at its left edge so it swings like a real door instead of
-	# spinning about its centre.
+	# spinning about its centre. Basis-relative so it works at any door yaw.
 	var pivot := Node3D.new()
 	barrier.add_child(pivot)
-	pivot.global_position = door.global_position + Vector3(-2.0, 0.0, 0.0)
+	pivot.global_position = door.global_position - barrier.global_transform.basis.x * 2.0
 	door.reparent(pivot, true)
 	var tween := create_tween()
 	tween.set_ease(Tween.EASE_OUT)

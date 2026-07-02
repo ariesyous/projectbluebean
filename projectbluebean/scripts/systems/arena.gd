@@ -14,6 +14,14 @@ const KIT := "res://assets/dungeon/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf
 const TILE := 4.0
 const WALL_H := 4.0
 
+# Floor styles per cell — each style renders as its own floor MultiMesh so
+# areas read differently (stone chapel/hall/gallery, wood annex, dirt crypt).
+const STYLE_STONE := 0
+const STYLE_WOOD := 1
+const STYLE_DIRT := 2
+
+const DoorScript := preload("res://scripts/interactables/buyable_door.gd")
+
 @export var spawn_interval: float = 1.5
 @export var max_alive: int = 6
 @export var first_round_enemy_count: int = 6
@@ -33,6 +41,9 @@ var _round_active: bool = false
 var _is_boss_round: bool = false
 var _floor_cells: Dictionary = {}
 var _entry_points: Array = []
+# Stage 0 = Chapel (always open); 1 = Hall+Annex (Door 1); 2 = Gallery+Crypt
+# (Door 2 or 3). Barricade entries in locked stages receive no spawns.
+var _stage_unlocked: Array[bool] = [true, false, false]
 var _prop_collision: StaticBody3D = null
 
 func _ready() -> void:
@@ -50,7 +61,11 @@ func _ready() -> void:
 # so room boundaries are walled and corridors stay open automatically.
 func _build_dungeon() -> void:
 	_collect_cells()
-	var floor_scene: PackedScene = load(KIT + "floor_tile_large.gltf")
+	var floor_scenes := {
+		STYLE_STONE: load(KIT + "floor_tile_large.gltf"),
+		STYLE_WOOD: load(KIT + "floor_wood_large.gltf"),
+		STYLE_DIRT: load(KIT + "floor_dirt_large.gltf"),
+	}
 	var wall_scene: PackedScene = load(KIT + "wall.gltf")
 
 	var props := Node3D.new()
@@ -73,19 +88,25 @@ func _build_dungeon() -> void:
 	nav_region.add_child(prop_body)
 	_prop_collision = prop_body
 
-	var floor_data := _extract_tile_mesh(floor_scene)
-	var floor_placements: Array = []
+	# One placements bucket per floor style; each style draws as one MultiMesh.
+	var floor_placements := {STYLE_STONE: [], STYLE_WOOD: [], STYLE_DIRT: []}
 	for cell in _floor_cells:
 		var wx: float = cell.x * TILE
 		var wz: float = cell.y * TILE
-		floor_placements.append(Transform3D(Basis(), Vector3(wx, 0.0, wz)))
+		floor_placements[_floor_cells[cell]].append(Transform3D(Basis(), Vector3(wx, 0.0, wz)))
 		var fcol := CollisionShape3D.new()
 		var fbox := BoxShape3D.new()
 		fbox.size = Vector3(TILE, 0.2, TILE)
 		fcol.shape = fbox
 		floor_body.add_child(fcol)
 		fcol.position = Vector3(wx, -0.1, wz)
-	_add_tile_multimesh(floors, "FloorMultiMesh", floor_data["mesh"], floor_data["xform"], floor_placements)
+	for style in floor_placements:
+		var style_scene := floor_scenes[style] as PackedScene
+		if style_scene == null:
+			push_warning("Missing floor tile scene for style %d" % style)
+			continue
+		var floor_data := _extract_tile_mesh(style_scene)
+		_add_tile_multimesh(floors, "FloorMultiMesh%d" % style, floor_data["mesh"], floor_data["xform"], floor_placements[style])
 
 	var wall_data := _extract_tile_mesh(wall_scene)
 	var wall_placements: Array = []
@@ -114,7 +135,7 @@ func _build_dungeon() -> void:
 	_build_ceiling(props)
 	_build_corner_pillars(props)
 	_place_dungeon_props(props)
-	_decorate_buyable_door()
+	_create_buyable_doors()
 	_create_barricade_entries()
 
 func _start_ambient_audio() -> void:
@@ -236,40 +257,67 @@ func _corner_yaw(d: Vector2i) -> float:
 		return PI
 	return PI * 1.5
 
-## Swap the gated door's plain emissive box for a real KayKit door model. The box
-## collider stays (it's the gate); the whole BuyableDoor frees on purchase so the
-## door model disappears with it.
-func _decorate_buyable_door() -> void:
-	var door := get_node_or_null("BuyableDoor")
-	if door == null:
-		return
-	var barrier := door.get_node_or_null("Barrier")
-	if barrier == null:
-		return
-	var mesh := barrier.get_node_or_null("BarrierMesh") as MeshInstance3D
-	if mesh != null:
-		mesh.visible = false
-	var scene: PackedScene = load(KIT + "wall_doorway.gltf")
-	if scene == null:
-		push_warning("Missing wall_doorway.gltf")
-		return
-	var model: Node3D = scene.instantiate()
-	model.name = "DoorModel"
-	barrier.add_child(model)
-	# BuyableDoor sits at y=2; the door model's origin is at its base, so drop it
-	# 2 units to stand on the floor. Default yaw spans x and blocks the z corridor.
-	model.position = Vector3(0.0, -2.0, 0.0)
+## Build the three staged buyable doors in code. Each door cell is the only
+## opening between its two areas, so its barrier is the actual gate. Doors sit
+## under Arena (NOT the nav region): the navmesh must span the doorway so
+## agents can path through once the barrier frees.
+func _create_buyable_doors() -> void:
+	_create_buyable_door(Vector2i(0, 3), &"door1", 1000, "Open the Great Hall")
+	_create_buyable_door(Vector2i(-3, -3), &"door2", 1750, "Open the Long Gallery")
+	_create_buyable_door(Vector2i(5, -3), &"door3", 2500, "Open the Storage Gate")
+
+func _create_buyable_door(cell: Vector2i, id: StringName, price: int, label: String) -> void:
+	var door := Area3D.new()
+	door.name = "BuyableDoor_%s" % id
+	door.set_script(DoorScript)
+	door.set("door_id", id)
+	door.set("door_cost", price)
+	door.set("door_label", label)
+	add_child(door)
+	door.global_position = Vector3(cell.x * TILE, 2.0, cell.y * TILE)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(TILE, WALL_H, 1.0)
+	shape.shape = box
+	door.add_child(shape)
+	var barrier := StaticBody3D.new()
+	barrier.name = "Barrier"
+	door.add_child(barrier)
+	var bcol := CollisionShape3D.new()
+	bcol.name = "BarrierCol"
+	var bbox := BoxShape3D.new()
+	bbox.size = Vector3(TILE, WALL_H, 1.0)
+	bcol.shape = bbox
+	barrier.add_child(bcol)
+	var model_scene: PackedScene = load(KIT + "wall_doorway.gltf")
+	if model_scene != null:
+		var model: Node3D = model_scene.instantiate()
+		model.name = "DoorModel"
+		barrier.add_child(model)
+		# Door node sits at y=2; the model's origin is at its base, so drop it
+		# 2 units to stand on the floor. All three door cells connect north-
+		# south, so the default yaw (spanning x) blocks the z passage.
+		model.position = Vector3(0.0, -2.0, 0.0)
+	door.connect("opened", _on_door_opened)
+
+func _on_door_opened(id: StringName) -> void:
+	# Any door needs stage 1 open to be reachable; doors 2 and 3 open stage 2.
+	_stage_unlocked[1] = true
+	if id != &"door1":
+		_stage_unlocked[2] = true
 
 func _create_barricade_entries() -> void:
 	_entry_points.clear()
 	var root := Node3D.new()
 	root.name = "EntryPoints"
 	add_child(root)
-	_add_barricade_entry(root, "Start Window", Vector2i(0, 6), Vector2i(0, 1))
-	_add_barricade_entry(root, "East Breach", Vector2i(4, -2), Vector2i(1, 0))
-	_add_barricade_entry(root, "West Breach", Vector2i(-4, 2), Vector2i(-1, 0))
+	_add_barricade_entry(root, "Chapel Window", Vector2i(0, 7), Vector2i(0, 1), 0)
+	_add_barricade_entry(root, "West Breach", Vector2i(-8, 0), Vector2i(-1, 0), 1)
+	_add_barricade_entry(root, "Storage Window", Vector2i(8, 0), Vector2i(1, 0), 1)
+	_add_barricade_entry(root, "Gallery Breach", Vector2i(-9, -5), Vector2i(-1, 0), 2)
+	_add_barricade_entry(root, "Crypt Breach", Vector2i(4, -12), Vector2i(0, -1), 2)
 
-func _add_barricade_entry(root: Node3D, entry_label: String, cell: Vector2i, dir: Vector2i) -> void:
+func _add_barricade_entry(root: Node3D, entry_label: String, cell: Vector2i, dir: Vector2i, stage: int) -> void:
 	var outside := Vector3(float(dir.x), 0.0, float(dir.y))
 	var pos := Vector3(
 		float(cell.x) * TILE + outside.x * TILE * 0.5,
@@ -286,7 +334,21 @@ func _add_barricade_entry(root: Node3D, entry_label: String, cell: Vector2i, dir
 	_entry_points.append({
 		"barricade": barricade,
 		"spawn_position": pos + outside * (TILE * 0.5),
+		"stage": stage,
 	})
+
+## Entries only feed spawns once their stage's door has been bought.
+func _active_entries() -> Array:
+	return _entry_points.filter(func(e): return _stage_unlocked[e["stage"]])
+
+## The boss spawns in the deepest UNLOCKED area so it never lands behind a
+## locked door. All three points are kept prop-free by _place_dungeon_props.
+func _boss_spawn_position() -> Vector3:
+	if _stage_unlocked[2]:
+		return Vector3(-4.0, 0.0, -40.0)   # crypt centre
+	if _stage_unlocked[1]:
+		return Vector3(-14.0, 0.0, 0.0)    # great hall centre
+	return Vector3(0.0, 0.0, 26.0)         # chapel south end
 
 ## Lift the dark dungeon a touch now that a ceiling encloses it, keeping the mood
 ## while making orc silhouettes readable during kiting.
@@ -299,32 +361,61 @@ func _tune_environment() -> void:
 	env.fog_density = 0.013
 
 func _place_dungeon_props(props: Node3D) -> void:
-	# Start room: readable silhouettes near the side walls, leaving the lane clear.
+	# Prop colliders carve the navmesh, so every door lane, corridor mouth,
+	# alcove mouth, and machine-nub mouth below is deliberately left clear.
+
+	# Chapel (stage 0, blue): silhouettes by the side walls, exit lane clear.
 	_place_prop("barrel_large_decorated.gltf", Vector3(-7.2, 0.0, 22.7), deg_to_rad(24.0), props)
 	_place_prop("crates_stacked.gltf", Vector3(7.2, 0.0, 22.4), deg_to_rad(-18.0), props)
-	_place_wall_prop("banner_shield_blue.gltf", Vector3(0.0, 0.0, 26.0), Vector2i(0, 1), props, 2.25)
+	_place_wall_prop("banner_shield_blue.gltf", Vector3(-6.0, 0.0, 30.0), Vector2i(0, 1), props, 2.25)
+	_place_wall_prop("banner_thin_blue.gltf", Vector3(6.0, 0.0, 30.0), Vector2i(0, 1), props, 2.25)
 
-	# Combat room: clutter the edges only so orc routes stay clean.
-	_place_prop("table_medium_broken.gltf", Vector3(-8.5, 0.0, -5.5), deg_to_rad(55.0), props)
-	_place_prop("barrel_small_stack.gltf", Vector3(14.0, 0.0, 5.7), deg_to_rad(-30.0), props)
-	_place_prop("pillar_decorated.gltf", Vector3(-14.0, 0.0, 6.0), 0.0, props)
-	_place_prop("pillar_decorated.gltf", Vector3(14.0, 0.0, -6.0), PI, props)
-	# Barrels relocated here from the narrow vault arms (which they choked); the
-	# combat room is wide enough that their carved colliders don't sever paths.
-	_place_prop("barrel_large.gltf", Vector3(13.0, 0.0, 5.0), deg_to_rad(12.0), props)
-	_place_prop("barrel_small.gltf", Vector3(-13.0, 0.0, 5.0), deg_to_rad(-8.0), props)
-	_place_wall_prop("banner_patternA_red.gltf", Vector3(-18.0, 0.0, 0.0), Vector2i(-1, 0), props, 2.25)
-	_place_wall_prop("banner_patternA_green.gltf", Vector3(18.0, 0.0, 0.0), Vector2i(1, 0), props, 2.25)
+	# Great Hall (stage 1, red): feast tables + freestanding cover. Door-1 lane
+	# (x -2..2, z 6..10) and door-2 lane (x -14..-10, z -10..-6) stay clear.
+	_place_prop("table_long_decorated_A.gltf", Vector3(-20.0, 0.0, 4.0), PI * 0.5, props)
+	_place_prop("table_long_tablecloth.gltf", Vector3(-20.0, 0.0, -4.0), PI * 0.5, props)
+	_place_prop("keg.gltf", Vector3(-32.0, 0.0, 8.0), deg_to_rad(30.0), props)
+	_place_prop("column.gltf", Vector3(-24.0, 0.0, 0.0), 0.0, props)
+	_place_prop("column.gltf", Vector3(-4.0, 0.0, 0.0), 0.0, props)
+	_place_prop("barrier.gltf", Vector3(-16.0, 0.0, -6.0), 0.0, props)
+	_place_wall_prop("banner_patternA_red.gltf", Vector3(-24.0, 0.0, -10.0), Vector2i(0, -1), props, 2.25)
+	_place_wall_prop("banner_patternA_red.gltf", Vector3(-4.0, 0.0, -10.0), Vector2i(0, -1), props, 2.25)
 
-	# Vault: Massive open arena.
-	_place_prop("table_long_decorated_A.gltf", Vector3(-4.0, 0.0, -37.2), 0.0, props)
-	_place_wall_prop("banner_triple_yellow.gltf", Vector3(0.0, 0.0, -38.0), Vector2i(0, -1), props, 2.25)
-	
-	# Arena Pillars for cover in the massive open vault
-	_place_prop("pillar_decorated.gltf", Vector3(-8.0, 0.0, -20.0), 0.0, props)
-	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -20.0), 0.0, props)
-	_place_prop("pillar_decorated.gltf", Vector3(-8.0, 0.0, -28.0), 0.0, props)
-	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -28.0), 0.0, props)
+	# Storage Annex (stage 1, green): kegs/crates/shelves. The arch lane
+	# (x 6..10) and door-3 lane (x 18..22, z -10..-6) stay clear.
+	_place_prop("keg.gltf", Vector3(12.0, 0.0, -8.0), deg_to_rad(-15.0), props)
+	_place_prop("keg_decorated.gltf", Vector3(14.5, 0.0, -7.5), deg_to_rad(40.0), props)
+	_place_prop("crates_stacked.gltf", Vector3(31.0, 0.0, -8.0), deg_to_rad(12.0), props)
+	_place_prop("barrel_small_stack.gltf", Vector3(12.0, 0.0, 8.0), deg_to_rad(-30.0), props)
+	_place_prop("shelf_large.gltf", Vector3(20.0, 0.0, 9.2), PI, props)
+	_place_prop("chest.gltf", Vector3(31.0, 0.0, 8.0), deg_to_rad(-100.0), props)
+	_place_wall_prop("banner_patternA_green.gltf", Vector3(12.0, 0.0, -10.0), Vector2i(0, -1), props, 2.25)
+	_place_wall_prop("banner_shield_green.gltf", Vector3(20.0, 0.0, 10.0), Vector2i(0, 1), props, 2.25)
+
+	# Long Gallery (stage 2, yellow): centreline columns break up the 76 m
+	# sightline without blocking the door lanes or the crypt corridor.
+	_place_prop("column.gltf", Vector3(-28.0, 0.0, -20.0), 0.0, props)
+	_place_prop("column.gltf", Vector3(-16.0, 0.0, -20.0), 0.0, props)
+	_place_prop("column.gltf", Vector3(8.0, 0.0, -20.0), 0.0, props)
+	_place_prop("column.gltf", Vector3(28.0, 0.0, -20.0), 0.0, props)
+	_place_prop("rubble_large.gltf", Vector3(34.0, 0.0, -24.0), deg_to_rad(70.0), props)
+	_place_prop("rubble_half.gltf", Vector3(-32.0, 0.0, -15.5), deg_to_rad(-25.0), props)
+	_place_wall_prop("banner_triple_yellow.gltf", Vector3(-24.0, 0.0, -26.0), Vector2i(0, -1), props, 2.25)
+	_place_wall_prop("banner_triple_yellow.gltf", Vector3(12.0, 0.0, -26.0), Vector2i(0, -1), props, 2.25)
+	_place_wall_prop("banner_thin_yellow.gltf", Vector3(0.0, 0.0, -14.0), Vector2i(0, 1), props, 2.25)
+
+	# Crypt (stage 2, white/gold): pillar colonnade + treasure by the apse.
+	# Corridor mouth (x -10..2 at z -30) and apse approach (z -50..-46) clear.
+	_place_prop("pillar_decorated.gltf", Vector3(-16.0, 0.0, -36.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -36.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(-16.0, 0.0, -44.0), 0.0, props)
+	_place_prop("pillar_decorated.gltf", Vector3(8.0, 0.0, -44.0), 0.0, props)
+	_place_prop("trunk_large_A.gltf", Vector3(-24.0, 0.0, -32.0), deg_to_rad(20.0), props)
+	_place_prop("chest.gltf", Vector3(16.0, 0.0, -32.0), PI, props)
+	_place_prop("table_long_broken.gltf", Vector3(-24.0, 0.0, -46.0), deg_to_rad(85.0), props)
+	_place_prop("chest_gold.gltf", Vector3(1.0, 0.0, -52.6), deg_to_rad(-135.0), props)
+	_place_wall_prop("banner_patternB_white.gltf", Vector3(8.0, 0.0, -50.0), Vector2i(0, -1), props, 2.25)
+	_place_wall_prop("banner_patternB_white.gltf", Vector3(-26.0, 0.0, -32.0), Vector2i(-1, 0), props, 2.25)
 
 func _place_prop(model: String, position: Vector3, yaw: float, props: Node3D) -> void:
 	var scene := load(KIT + model) as PackedScene
@@ -385,38 +476,48 @@ func _place_wall_prop(model: String, wall_pos: Vector3, dir: Vector2i, props: No
 	prop.look_at(prop.global_position + inner, Vector3.UP)
 
 func _collect_cells() -> void:
-	_add_room(Rect2i(-2, 4, 5, 3))     # Room A (start)
-	_add_room(Rect2i(-4, -2, 9, 5))    # Room B (combat)
-	_floor_cells[Vector2i(-1, 3)] = true    # widened corridor
-	_floor_cells[Vector2i(0, 3)] = true     # corridor A <-> B
-	_floor_cells[Vector2i(1, 3)] = true     # widened corridor
-	_floor_cells[Vector2i(0, -3)] = true    # buyable door into the vault loop
-	_add_barricade_alcoves()
-	_add_vault_loop()
+	# "The Undercroft" — a three-stage layout unlocked by buyable doors.
+	# Stage 0: Chapel (start). Stage 1: Great Hall + Storage Annex (Door 1).
+	# Stage 2: Long Gallery + Crypt + PaP apse (Doors 2 and 3 — opening BOTH
+	# completes the kiting loop Hall -> Arch -> Annex -> Gallery -> Hall).
+	_add_room(Rect2i(-2, 4, 5, 4), STYLE_STONE)      # Chapel (start)
+	_add_room(Rect2i(-8, -2, 10, 5), STYLE_STONE)    # Great Hall
+	_add_room(Rect2i(3, -2, 6, 5), STYLE_WOOD)       # Storage Annex
+	_add_room(Rect2i(-9, -6, 19, 3), STYLE_STONE)    # Long Gallery
+	_add_room(Rect2i(-6, -12, 11, 5), STYLE_DIRT)    # Crypt
 
-func _add_barricade_alcoves() -> void:
-	# One-cell entry alcoves behind repairable boards. They are part of the
-	# navmesh so orcs can route through naturally once the boards are broken.
-	_floor_cells[Vector2i(0, 7)] = true
-	_floor_cells[Vector2i(5, -2)] = true
-	_floor_cells[Vector2i(-5, 2)] = true
+	# Door cells — each is the ONLY opening between its two areas, so the
+	# door barrier is the actual gate (walls auto-fill every other edge).
+	_floor_cells[Vector2i(0, 3)] = STYLE_STONE       # Door 1: Chapel -> Hall
+	_floor_cells[Vector2i(-3, -3)] = STYLE_STONE     # Door 2: Hall -> Gallery
+	_floor_cells[Vector2i(5, -3)] = STYLE_STONE      # Door 3: Annex -> Gallery
 
-func _add_vault_loop() -> void:
-	# A massive open arena for late-round kiting. Only the centre top cell touches the
-	# combat room, so the existing buyable door remains the loop unlock.
-	_add_room(Rect2i(-4, -8, 9, 5))
-	
-	# Side nubs for the perk machines and Pack-a-Punch
-	_floor_cells[Vector2i(-5, -6)] = true
-	_floor_cells[Vector2i(5, -6)] = true
-	_floor_cells[Vector2i(-1, -9)] = true
-	_floor_cells[Vector2i(0, -9)] = true
-	_floor_cells[Vector2i(1, -9)] = true
+	# Arch joining Hall and Annex (2 wide, open from the moment stage 1 is).
+	_floor_cells[Vector2i(2, 0)] = STYLE_WOOD
+	_floor_cells[Vector2i(2, 1)] = STYLE_WOOD
 
-func _add_room(r: Rect2i) -> void:
+	# Corridor Gallery -> Crypt (3 wide) and the Pack-a-Punch apse.
+	for x in range(-2, 1):
+		_floor_cells[Vector2i(x, -7)] = STYLE_DIRT
+		_floor_cells[Vector2i(x, -13)] = STYLE_DIRT
+
+	# Machine nubs: PerkReload (hall west), PerkFireRate / PerkSpeed (crypt).
+	_floor_cells[Vector2i(-9, -2)] = STYLE_STONE
+	_floor_cells[Vector2i(-7, -10)] = STYLE_DIRT
+	_floor_cells[Vector2i(5, -10)] = STYLE_DIRT
+
+	# One-cell barricade entry alcoves behind repairable boards. They are part
+	# of the navmesh so orcs route through naturally once the boards break.
+	_floor_cells[Vector2i(0, 8)] = STYLE_STONE       # Chapel Window (stage 0)
+	_floor_cells[Vector2i(-9, 0)] = STYLE_STONE      # West Breach (stage 1)
+	_floor_cells[Vector2i(9, 0)] = STYLE_WOOD        # Storage Window (stage 1)
+	_floor_cells[Vector2i(-10, -5)] = STYLE_STONE    # Gallery Breach (stage 2)
+	_floor_cells[Vector2i(4, -13)] = STYLE_DIRT      # Crypt Breach (stage 2)
+
+func _add_room(r: Rect2i, style: int) -> void:
 	for tx in range(r.position.x, r.position.x + r.size.x):
 		for tz in range(r.position.y, r.position.y + r.size.y):
-			_floor_cells[Vector2i(tx, tz)] = true
+			_floor_cells[Vector2i(tx, tz)] = style
 
 func _bake_navigation() -> void:
 	# Let the scene/geometry settle a frame, then bake synchronously so the
@@ -484,7 +585,7 @@ func _spawn_orc() -> void:
 	if _is_boss_round:
 		var boss = BOSS_SCENE.instantiate()
 		enemies.add_child(boss)
-		boss.global_position = Vector3(0, 0, -25) # Vault center
+		boss.global_position = _boss_spawn_position()
 		_remaining_to_spawn -= 1
 		_update_round_status()
 		return
@@ -509,8 +610,9 @@ func _spawn_orc() -> void:
 	enemy.set("move_speed", float(enemy.get("move_speed")) * (1.0 + speed_scale_per_round * round_index))
 	enemies.add_child(enemy)
 
-	if not _entry_points.is_empty():
-		var entry: Dictionary = _entry_points[randi() % _entry_points.size()]
+	var entries := _active_entries()
+	if not entries.is_empty():
+		var entry: Dictionary = entries[randi() % entries.size()]
 		var spawn_position: Vector3 = entry.get("spawn_position", Vector3.ZERO)
 		var barricade: Node = entry.get("barricade", null) as Node
 		enemy.global_position = spawn_position
