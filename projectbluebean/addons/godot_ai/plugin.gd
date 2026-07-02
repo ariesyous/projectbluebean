@@ -64,6 +64,7 @@ const ProjectHandler := preload("res://addons/godot_ai/handlers/project_handler.
 const ClientHandler := preload("res://addons/godot_ai/handlers/client_handler.gd")
 const ScriptHandler := preload("res://addons/godot_ai/handlers/script_handler.gd")
 const ResourceHandler := preload("res://addons/godot_ai/handlers/resource_handler.gd")
+const ApiHandler := preload("res://addons/godot_ai/handlers/api_handler.gd")
 const FilesystemHandler := preload("res://addons/godot_ai/handlers/filesystem_handler.gd")
 const SignalHandler := preload("res://addons/godot_ai/handlers/signal_handler.gd")
 const AutoloadHandler := preload("res://addons/godot_ai/handlers/autoload_handler.gd")
@@ -232,18 +233,19 @@ func _enter_tree() -> void:
 
 	_telemetry = Telemetry.new(_connection)
 
-	_debugger_plugin = DebuggerPlugin.new(_log_buffer, _game_log_buffer)
+	_debugger_plugin = DebuggerPlugin.new(_log_buffer, _game_log_buffer, _editor_log_buffer)
 	add_debugger_plugin(_debugger_plugin)
 	_ensure_game_helper_autoload()
 
 	var editor_handler := EditorHandler.new(_log_buffer, _connection, _debugger_plugin, _game_log_buffer, _editor_log_buffer)
 	var scene_handler := SceneHandler.new(_connection)
 	var node_handler := NodeHandler.new(get_undo_redo())
-	var project_handler := ProjectHandler.new(_connection, _debugger_plugin)
+	var project_handler := ProjectHandler.new(_connection, _debugger_plugin, _editor_log_buffer)
 	var client_handler := ClientHandler.new()
 	var script_handler := ScriptHandler.new(get_undo_redo(), _connection)
 	var resource_handler := ResourceHandler.new(get_undo_redo(), _connection)
-	var filesystem_handler := FilesystemHandler.new()
+	var api_handler := ApiHandler.new()
+	var filesystem_handler := FilesystemHandler.new(_connection)
 	var signal_handler := SignalHandler.new(get_undo_redo())
 	var autoload_handler := AutoloadHandler.new()
 	var input_handler := InputHandler.new()
@@ -261,7 +263,7 @@ func _enter_tree() -> void:
 	var texture_handler := TextureHandler.new(get_undo_redo(), _connection)
 	var curve_handler := CurveHandler.new(get_undo_redo(), _connection)
 	var control_draw_recipe_handler := ControlDrawRecipeHandler.new(get_undo_redo())
-	_handlers = [editor_handler, scene_handler, node_handler, project_handler, client_handler, script_handler, resource_handler, filesystem_handler, signal_handler, autoload_handler, input_handler, test_handler, batch_handler, ui_handler, theme_handler, animation_handler, material_handler, particle_handler, camera_handler, audio_handler, physics_shape_handler, environment_handler, texture_handler, curve_handler, control_draw_recipe_handler]
+	_handlers = [editor_handler, scene_handler, node_handler, project_handler, client_handler, script_handler, resource_handler, api_handler, filesystem_handler, signal_handler, autoload_handler, input_handler, test_handler, batch_handler, ui_handler, theme_handler, animation_handler, material_handler, particle_handler, camera_handler, audio_handler, physics_shape_handler, environment_handler, texture_handler, curve_handler, control_draw_recipe_handler]
 
 	_dispatcher.register("get_editor_state", editor_handler.get_editor_state)
 	_dispatcher.register("get_scene_tree", scene_handler.get_scene_tree)
@@ -312,9 +314,11 @@ func _enter_tree() -> void:
 	_dispatcher.register("assign_resource", resource_handler.assign_resource)
 	_dispatcher.register("create_resource", resource_handler.create_resource)
 	_dispatcher.register("get_resource_info", resource_handler.get_resource_info)
+	_dispatcher.register("get_class_info", api_handler.get_class_info)
 	_dispatcher.register("read_file", filesystem_handler.read_file)
 	_dispatcher.register("write_file", filesystem_handler.write_file)
 	_dispatcher.register("reimport", filesystem_handler.reimport)
+	_dispatcher.register("scan_filesystem", filesystem_handler.scan_filesystem)
 	_dispatcher.register("list_signals", signal_handler.list_signals)
 	_dispatcher.register("connect_signal", signal_handler.connect_signal)
 	_dispatcher.register("disconnect_signal", signal_handler.disconnect_signal)
@@ -1089,7 +1093,17 @@ func _evaluate_strong_port_occupant_proof(port: int, live: Dictionary = {}) -> D
 	var record_version := str(record.get("version", ""))
 
 	if record_pid > 1 and record_pid != OS.get_process_id():
-		if listener_pids.has(record_pid) and _pid_alive_for_proof(record_pid):
+		## Brand-verify the recorded PID before trusting it as a kill target.
+		## A recorded PID can outlive the server it named and be recycled by
+		## the kernel for an unrelated process that happens to bind the same
+		## port — without the cmdline brand gate (the same one the
+		## `pidfile_listener` branch enforces) that process could be killed.
+		## See #525.
+		if (
+			listener_pids.has(record_pid)
+			and _pid_alive_for_proof(record_pid)
+			and _pid_cmdline_is_godot_ai_for_proof(record_pid)
+		):
 			return {"proof": "managed_record", "pids": [record_pid]}
 
 	var legacy_targets := _legacy_pidfile_kill_targets(port, listener_pids)
